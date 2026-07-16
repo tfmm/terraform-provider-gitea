@@ -61,6 +61,7 @@ Can be `none`, `read`, `write`, `admin` or `owner`
 - `repositories` (List of String) List of Repositories that should be part of this team
 - `units` (String) List of types of Repositories that should be allowed to be created from Team members.
 Can be `repo.code`, `repo.issues`, `repo.ext_issues`, `repo.wiki`, `repo.pulls`, `repo.releases`, `repo.projects`, `repo.ext_wiki`, `repo.actions` and/or `repo.packages`
+- `units_map` (Map of String) Map of repository units to their permissions
 
 ### Read-Only
 
