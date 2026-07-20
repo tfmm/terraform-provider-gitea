@@ -47,3 +47,17 @@ resource "gitea_repository" "example" {
 - `avatar_url` (String)
 - `id` (String) The ID of this resource.
 - `repos` (List of String) List of all Repositories that are part of this organisation
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import gitea_org.example <id>
+```
+
+Example:
+
+```shell
+terraform import gitea_org.example 12
+```

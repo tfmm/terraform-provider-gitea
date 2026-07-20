@@ -49,3 +49,11 @@ resource "gitea_team_members" "example_members" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import gitea_team_members.example <team_id>
+```

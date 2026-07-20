@@ -59,3 +59,19 @@ resource "gitea_user" "test" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import gitea_user.example <id>
+```
+
+Example:
+
+```shell
+terraform import gitea_user.example 45
+```
+
+Note: `password` must remain configured in HCL as Gitea API does not return passwords.

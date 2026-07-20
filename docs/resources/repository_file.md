@@ -85,3 +85,11 @@ resource "gitea_repository_file" "example_base64" {
 - `id` (String) The ID of this resource.
 - `last_commit_sha` (String) The SHA of the last commit
 - `size` (Number) The size of the file in bytes
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import gitea_repository_file.example <username>/<repo>/<branch>/<file_path>
+```

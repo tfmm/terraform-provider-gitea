@@ -47,3 +47,11 @@ resource "gitea_public_key" "test_user_key" {
 - `fingerprint` (String)
 - `id` (String) The ID of this resource.
 - `type` (String)
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import gitea_public_key.example <id>
+```

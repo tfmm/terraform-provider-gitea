@@ -55,3 +55,11 @@ output "token" {
 - `id` (String) The ID of this resource.
 - `last_eight` (String)
 - `token` (String, Sensitive) The actual Access Token
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import gitea_token.example <id>
+```

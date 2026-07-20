@@ -133,3 +133,11 @@ Need to exist in the gitea instance
 - `permission_push` (Boolean)
 - `ssh_url` (String)
 - `updated` (String)
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+terraform import gitea_repository.example <id>
+```
