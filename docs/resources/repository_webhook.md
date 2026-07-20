@@ -51,7 +51,16 @@ resource "gitea_repository_webhook" "example" {
 
 ## Import
 
-Import is supported using the following syntax:
+Using `import` blocks in Terraform v1.5.0 and later:
+
+```terraform
+import {
+  to = gitea_repository_webhook.example
+  id = "<username>/<repo>/<webhook_id>"
+}
+```
+
+Using `terraform import` in Terraform v1.4.0 and earlier:
 
 ```shell
 terraform import gitea_repository_webhook.example <username>/<repo>/<webhook_id>

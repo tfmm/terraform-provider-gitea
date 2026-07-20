@@ -40,7 +40,16 @@ resource "gitea_oauth2_app" "example" {
 
 ## Import
 
-Import is supported using the following syntax:
+Using `import` blocks in Terraform v1.5.0 and later:
+
+```terraform
+import {
+  to = gitea_oauth2_app.example
+  id = "<client_id>"
+}
+```
+
+Using `terraform import` in Terraform v1.4.0 and earlier:
 
 ```shell
 terraform import gitea_oauth2_app.example <client_id>

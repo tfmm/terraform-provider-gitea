@@ -43,7 +43,16 @@ resource "gitea_repository_actions_secret" "example" {
 
 ## Import
 
-Import is supported using the following syntax:
+Using `import` blocks in Terraform v1.5.0 and later:
+
+```terraform
+import {
+  to = gitea_repository_actions_secret.example
+  id = "<repository_owner>:<repository>:<secret_name>"
+}
+```
+
+Using `terraform import` in Terraform v1.4.0 and earlier:
 
 ```shell
 terraform import gitea_repository_actions_secret.example <repository_owner>:<repository>:<secret_name>

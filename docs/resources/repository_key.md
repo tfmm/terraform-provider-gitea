@@ -61,7 +61,16 @@ resource "gitea_repository_key" "example" {
 
 ## Import
 
-Import is supported using the following syntax:
+Using `import` blocks in Terraform v1.5.0 and later:
+
+```terraform
+import {
+  to = gitea_repository_key.example
+  id = "<repo_id>/<key_id>"
+}
+```
+
+Using `terraform import` in Terraform v1.4.0 and earlier:
 
 ```shell
 terraform import gitea_repository_key.example <repo_id>/<key_id>

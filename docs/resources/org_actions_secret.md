@@ -50,7 +50,16 @@ resource "gitea_org_actions_secret" "example" {
 
 ## Import
 
-Import is supported using the following syntax:
+Using `import` blocks in Terraform v1.5.0 and later:
+
+```terraform
+import {
+  to = gitea_org_actions_secret.example
+  id = "<org>:<secret_name>"
+}
+```
+
+Using `terraform import` in Terraform v1.4.0 and earlier:
 
 ```shell
 terraform import gitea_org_actions_secret.example <org>:<secret_name>

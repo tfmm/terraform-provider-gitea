@@ -41,7 +41,16 @@ resource "gitea_user_actions_variable" "example" {
 
 ## Import
 
-Import is supported using the following syntax:
+Using `import` blocks in Terraform v1.5.0 and later:
+
+```terraform
+import {
+  to = gitea_user_actions_variable.example
+  id = "<variable_name>"
+}
+```
+
+Using `terraform import` in Terraform v1.4.0 and earlier:
 
 ```shell
 terraform import gitea_user_actions_variable.example <variable_name>

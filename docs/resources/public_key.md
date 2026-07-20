@@ -50,7 +50,16 @@ resource "gitea_public_key" "test_user_key" {
 
 ## Import
 
-Import is supported using the following syntax:
+Using `import` blocks in Terraform v1.5.0 and later:
+
+```terraform
+import {
+  to = gitea_public_key.example
+  id = "<id>"
+}
+```
+
+Using `terraform import` in Terraform v1.4.0 and earlier:
 
 ```shell
 terraform import gitea_public_key.example <id>

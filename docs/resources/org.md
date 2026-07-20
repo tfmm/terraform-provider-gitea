@@ -50,14 +50,17 @@ resource "gitea_repository" "example" {
 
 ## Import
 
-Import is supported using the following syntax:
+Using `import` blocks in Terraform v1.5.0 and later:
+
+```terraform
+import {
+  to = gitea_org.example
+  id = "<id>"
+}
+```
+
+Using `terraform import` in Terraform v1.4.0 and earlier:
 
 ```shell
 terraform import gitea_org.example <id>
-```
-
-Example:
-
-```shell
-terraform import gitea_org.example 12
 ```

@@ -136,8 +136,17 @@ Need to exist in the gitea instance
 
 ## Import
 
-Import is supported using the following syntax:
+Using `import` blocks in Terraform v1.5.0 and later:
+
+```terraform
+import {
+  to = gitea_repository.example
+  id = "101"
+}
+```
+
+Using `terraform import` in Terraform v1.4.0 and earlier:
 
 ```shell
-terraform import gitea_repository.example <id>
+terraform import gitea_repository.example 101
 ```
