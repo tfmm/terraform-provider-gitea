@@ -86,4 +86,3 @@ Using `terraform import` in Terraform v1.4.0 and earlier:
 ```shell
 terraform import gitea_repository_webhook.example <username>/<repo>/<webhook_id>
 ```
-
