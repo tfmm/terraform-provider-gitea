@@ -30,3 +30,4 @@ data "gitea_team" "example" {
 - `organisation` (String)
 - `permission` (String)
 - `units` (List of String)
+- `units_map` (Map of String) Map of repository units to their permissions
