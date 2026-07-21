@@ -31,6 +31,7 @@ data "gitea_repo" "example" {
 - `clone_url` (String)
 - `created` (String)
 - `default_branch` (String)
+- `default_merge_style` (String)
 - `description` (String)
 - `fork` (Boolean)
 - `forks` (Number)
