@@ -69,3 +69,21 @@ resource "gitea_repository_webhook" "slack_hook" {
 
 - `created_at` (String) Webhook creation timestamp
 - `id` (String) The ID of this resource.
+
+## Import
+
+Using `import` blocks in Terraform v1.5.0 and later:
+
+```terraform
+import {
+  to = gitea_repository_webhook.example
+  id = "<username>/<repo>/<webhook_id>"
+}
+```
+
+Using `terraform import` in Terraform v1.4.0 and earlier:
+
+```shell
+terraform import gitea_repository_webhook.example <username>/<repo>/<webhook_id>
+```
+
