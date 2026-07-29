@@ -449,6 +449,9 @@ func TestBuildCreateTeamOptionsWithUnitsMap(t *testing.T) {
 	if len(opts.Units) != 0 {
 		t.Fatalf("expected Units to be empty when units_map is configured, got %#v", opts.Units)
 	}
+	if string(opts.Permission) != "write" {
+		t.Fatalf("expected Permission to be 'write', got %q", opts.Permission)
+	}
 	if opts.UnitsMap["repo.code"] != "write" {
 		t.Fatalf("expected units_map['repo.code'] to be 'write', got %q", opts.UnitsMap["repo.code"])
 	}
@@ -472,11 +475,76 @@ func TestBuildEditTeamOptionsWithUnitsMap(t *testing.T) {
 	if len(opts.Units) != 0 {
 		t.Fatalf("expected Units to be empty when units_map is configured, got %#v", opts.Units)
 	}
+	if string(opts.Permission) != "write" {
+		t.Fatalf("expected Permission to be 'write', got %q", opts.Permission)
+	}
 	if opts.UnitsMap["repo.code"] != "write" {
 		t.Fatalf("expected units_map['repo.code'] to be 'write', got %q", opts.UnitsMap["repo.code"])
 	}
 	if opts.UnitsMap["repo.issues"] != "write" {
 		t.Fatalf("expected units_map['repo.issues'] to be 'write', got %q", opts.UnitsMap["repo.issues"])
+	}
+}
+
+func TestUnitsMapDiffSuppressFunc(t *testing.T) {
+	tests := []struct {
+		key    string
+		oldVal string
+		newVal string
+		want   bool
+	}{
+		{"units_map.repo.ext_issues", "read", "write", true},
+		{"units_map.repo.ext_issues", "write", "read", true},
+		{"units_map.repo.ext_wiki", "read", "write", true},
+		{"units_map.repo.ext_wiki", "write", "read", true},
+		{"units_map.repo.code", "read", "write", false},
+		{"units_map.repo.code", "write", "write", true},
+	}
+
+	for _, tc := range tests {
+		if got := unitsMapDiffSuppressFunc(tc.key, tc.oldVal, tc.newVal, nil); got != tc.want {
+			t.Errorf("unitsMapDiffSuppressFunc(%q, %q, %q) = %v; want %v", tc.key, tc.oldVal, tc.newVal, got, tc.want)
+		}
+	}
+}
+
+func TestUnitsDiffSuppressFunc(t *testing.T) {
+	oldStr := "[repo.code repo.pulls repo.releases repo.wiki repo.ext_wiki repo.issues repo.ext_issues repo.projects repo.packages repo.actions]"
+	newStr := "[repo.code repo.issues repo.ext_issues repo.wiki repo.pulls repo.releases repo.ext_wiki repo.projects repo.actions repo.packages]"
+	newStrCommas := "[repo.code, repo.issues, repo.ext_issues, repo.wiki, repo.pulls, repo.releases, repo.ext_wiki, repo.projects, repo.actions, repo.packages]"
+
+	if !unitsDiffSuppressFunc("units", oldStr, newStr, nil) {
+		t.Errorf("expected unitsDiffSuppressFunc to return true for reordered units")
+	}
+	if !unitsDiffSuppressFunc("units", oldStr, newStrCommas, nil) {
+		t.Errorf("expected unitsDiffSuppressFunc to return true for reordered units with commas")
+	}
+	diffStr := "[repo.code repo.issues]"
+	if unitsDiffSuppressFunc("units", oldStr, diffStr, nil) {
+		t.Errorf("expected unitsDiffSuppressFunc to return false for subset of units")
+	}
+}
+
+func TestRepositoriesDiffSuppressFunc(t *testing.T) {
+	dIncludeAll := schema.TestResourceDataRaw(t, resourceGiteaTeam().Schema, map[string]interface{}{
+		"include_all_repositories": true,
+	})
+	dSpecificRepos := schema.TestResourceDataRaw(t, resourceGiteaTeam().Schema, map[string]interface{}{
+		"include_all_repositories": false,
+		"repositories": []interface{}{
+			"cloudflare-terraform",
+			"gitea-terraform",
+			"zitadel-terraform",
+			"docker-compose-stacks",
+		},
+	})
+
+	if !repositoriesDiffSuppressFunc("repositories.0", "docker-compose-stacks", "cloudflare-terraform", dIncludeAll) {
+		t.Errorf("expected repositoriesDiffSuppressFunc to return true when include_all_repositories is true")
+	}
+
+	if !repositoriesDiffSuppressFunc("repositories.1", "docker-compose-stacks", "gitea-terraform", dSpecificRepos) {
+		t.Errorf("expected repositoriesDiffSuppressFunc to return true for reordered repositories with identical set")
 	}
 }
 
