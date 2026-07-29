@@ -508,6 +508,23 @@ func TestUnitsMapDiffSuppressFunc(t *testing.T) {
 	}
 }
 
+func TestUnitsDiffSuppressFunc(t *testing.T) {
+	oldStr := "[repo.code repo.pulls repo.releases repo.wiki repo.ext_wiki repo.issues repo.ext_issues repo.projects repo.packages repo.actions]"
+	newStr := "[repo.code repo.issues repo.ext_issues repo.wiki repo.pulls repo.releases repo.ext_wiki repo.projects repo.actions repo.packages]"
+	newStrCommas := "[repo.code, repo.issues, repo.ext_issues, repo.wiki, repo.pulls, repo.releases, repo.ext_wiki, repo.projects, repo.actions, repo.packages]"
+
+	if !unitsDiffSuppressFunc("units", oldStr, newStr, nil) {
+		t.Errorf("expected unitsDiffSuppressFunc to return true for reordered units")
+	}
+	if !unitsDiffSuppressFunc("units", oldStr, newStrCommas, nil) {
+		t.Errorf("expected unitsDiffSuppressFunc to return true for reordered units with commas")
+	}
+	diffStr := "[repo.code repo.issues]"
+	if unitsDiffSuppressFunc("units", oldStr, diffStr, nil) {
+		t.Errorf("expected unitsDiffSuppressFunc to return false for subset of units")
+	}
+}
+
 func TestDurationDiffSuppressFunc(t *testing.T) {
 	dMirrorTrue := schema.TestResourceDataRaw(t, resourceGiteaRepository().Schema, map[string]interface{}{
 		"mirror": true,

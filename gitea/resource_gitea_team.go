@@ -511,11 +511,36 @@ func resourceGiteaTeam() *schema.Resource {
 	}
 }
 
+func parseUnitsSet(s string) map[string]bool {
+	s = strings.ReplaceAll(s, "[", "")
+	s = strings.ReplaceAll(s, "]", "")
+	s = strings.ReplaceAll(s, ",", " ")
+	fields := strings.Fields(s)
+	set := make(map[string]bool)
+	for _, f := range fields {
+		set[f] = true
+	}
+	return set
+}
+
 func unitsDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	if old == new {
+		return true
+	}
 	if d != nil {
 		if _, hasUnitsMap := d.GetOk("units_map"); hasUnitsMap {
 			return true
 		}
+	}
+	oldSet := parseUnitsSet(old)
+	newSet := parseUnitsSet(new)
+	if len(oldSet) > 0 && len(oldSet) == len(newSet) {
+		for u := range oldSet {
+			if !newSet[u] {
+				return false
+			}
+		}
+		return true
 	}
 	return false
 }
