@@ -303,14 +303,30 @@ func setTeamResourceData(team *gitea.Team, repositories []string, d *schema.Reso
 	if v, ok := d.GetOk("units_map"); ok {
 		configMap := v.(map[string]interface{})
 		stateMap := make(map[string]string)
+
+		enabledUnits := make(map[string]bool)
+		for _, u := range team.Units {
+			enabledUnits[string(u)] = true
+		}
+
 		for k := range configMap {
 			if team.UnitsMap != nil {
-				if apiVal, exists := team.UnitsMap[k]; exists {
+				if apiVal, exists := team.UnitsMap[k]; exists && apiVal != "" {
 					stateMap[k] = apiVal
 					continue
 				}
 			}
-			stateMap[k] = "none"
+			if enabledUnits[k] {
+				if team.Permission == gitea.AccessModeWrite || team.Permission == gitea.AccessModeAdmin || team.Permission == gitea.AccessModeOwner {
+					stateMap[k] = string(team.Permission)
+				} else if cfgVal, ok := configMap[k].(string); ok && cfgVal != "" {
+					stateMap[k] = cfgVal
+				} else {
+					stateMap[k] = "read"
+				}
+			} else {
+				stateMap[k] = "none"
+			}
 		}
 		d.Set("units_map", stateMap)
 	} else {
