@@ -449,6 +449,9 @@ func TestBuildCreateTeamOptionsWithUnitsMap(t *testing.T) {
 	if len(opts.Units) != 0 {
 		t.Fatalf("expected Units to be empty when units_map is configured, got %#v", opts.Units)
 	}
+	if string(opts.Permission) != "write" {
+		t.Fatalf("expected Permission to be 'write', got %q", opts.Permission)
+	}
 	if opts.UnitsMap["repo.code"] != "write" {
 		t.Fatalf("expected units_map['repo.code'] to be 'write', got %q", opts.UnitsMap["repo.code"])
 	}
@@ -471,6 +474,9 @@ func TestBuildEditTeamOptionsWithUnitsMap(t *testing.T) {
 
 	if len(opts.Units) != 0 {
 		t.Fatalf("expected Units to be empty when units_map is configured, got %#v", opts.Units)
+	}
+	if string(opts.Permission) != "write" {
+		t.Fatalf("expected Permission to be 'write', got %q", opts.Permission)
 	}
 	if opts.UnitsMap["repo.code"] != "write" {
 		t.Fatalf("expected units_map['repo.code'] to be 'write', got %q", opts.UnitsMap["repo.code"])

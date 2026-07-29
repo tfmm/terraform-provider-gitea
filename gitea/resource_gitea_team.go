@@ -143,11 +143,12 @@ func buildCreateTeamOptions(d *schema.ResourceData) gitea.CreateTeamOption {
 	}
 
 	includeAllRepos := d.Get(TeamIncludeAllReposFlag).(bool)
+	effectivePerm := getEffectivePermission(d, unitsMap)
 
 	return gitea.CreateTeamOption{
 		Name:                    d.Get(TeamName).(string),
 		Description:             d.Get(TeamDescription).(string),
-		Permission:              gitea.AccessMode(d.Get(TeamPermissions).(string)),
+		Permission:              effectivePerm,
 		CanCreateOrgRepo:        d.Get(TeamCreateRepoFlag).(bool),
 		IncludesAllRepositories: includeAllRepos,
 		Units:                   units,
@@ -171,15 +172,60 @@ func buildEditTeamOptions(d *schema.ResourceData) gitea.EditTeamOption {
 	description := d.Get(TeamDescription).(string)
 	canCreateRepo := d.Get(TeamCreateRepoFlag).(bool)
 	includeAllRepos := d.Get(TeamIncludeAllReposFlag).(bool)
+	effectivePerm := getEffectivePermission(d, unitsMap)
 
 	return gitea.EditTeamOption{
 		Name:                    d.Get(TeamName).(string),
 		Description:             &description,
-		Permission:              gitea.AccessMode(d.Get(TeamPermissions).(string)),
+		Permission:              effectivePerm,
 		CanCreateOrgRepo:        &canCreateRepo,
 		IncludesAllRepositories: &includeAllRepos,
 		Units:                   units,
 		UnitsMap:                unitsMap,
+	}
+}
+
+func getEffectivePermission(d *schema.ResourceData, unitsMap map[string]string) gitea.AccessMode {
+	permStr := d.Get(TeamPermissions).(string)
+	if permStr != "" {
+		userPerm := gitea.AccessMode(permStr)
+		maxMapPerm := maxPermissionFromMap(unitsMap)
+		if permissionRank(userPerm) < permissionRank(maxMapPerm) {
+			return maxMapPerm
+		}
+		return userPerm
+	}
+	if len(unitsMap) > 0 {
+		return maxPermissionFromMap(unitsMap)
+	}
+	return gitea.AccessModeRead
+}
+
+func maxPermissionFromMap(unitsMap map[string]string) gitea.AccessMode {
+	maxPerm := gitea.AccessModeRead
+	for _, p := range unitsMap {
+		mode := gitea.AccessMode(p)
+		if permissionRank(mode) > permissionRank(maxPerm) {
+			maxPerm = mode
+		}
+	}
+	return maxPerm
+}
+
+func permissionRank(mode gitea.AccessMode) int {
+	switch strings.ToLower(string(mode)) {
+	case "none":
+		return 0
+	case "read":
+		return 1
+	case "write":
+		return 2
+	case "admin":
+		return 3
+	case "owner":
+		return 4
+	default:
+		return 1
 	}
 }
 
@@ -249,7 +295,9 @@ func setTeamResourceData(team *gitea.Team, repositories []string, d *schema.Reso
 	d.Set(TeamCreateRepoFlag, team.CanCreateOrgRepo)
 	d.Set(TeamDescription, team.Description)
 	d.Set(TeamName, team.Name)
-	d.Set(TeamPermissions, string(team.Permission))
+	if _, hasUnitsMap := d.GetOk("units_map"); !hasUnitsMap || d.Get(TeamPermissions).(string) != "" {
+		d.Set(TeamPermissions, string(team.Permission))
+	}
 	d.Set(TeamIncludeAllReposFlag, team.IncludesAllRepositories)
 	d.Set(TeamUnits, fmt.Sprintf("%v", team.Units))
 	if v, ok := d.GetOk("units_map"); ok {
