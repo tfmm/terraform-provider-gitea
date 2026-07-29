@@ -31,6 +31,11 @@ func normalizeDuration(s string) string {
 }
 
 func durationDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	if d != nil {
+		if mirror, ok := d.GetOk(repoMirror); !ok || !mirror.(bool) {
+			return true
+		}
+	}
 	if old == "" || new == "" {
 		return old == new
 	}
@@ -462,8 +467,10 @@ func setRepoResourceData(repo *gitea.Repository, d *schema.ResourceData) (err er
 	d.Set(repoAllowSquash, repo.AllowSquash)
 	d.Set(repoArchived, repo.Archived)
 	d.Set(repoDefaultMergeStyle, string(repo.DefaultMergeStyle))
-	if repo.Mirror || repo.MirrorInterval != "" {
+	if repo.Mirror {
 		d.Set(migrationMirrorInterval, repo.MirrorInterval)
+	} else {
+		d.Set(migrationMirrorInterval, "")
 	}
 	if repo.Permissions != nil {
 		d.Set("permission_admin", repo.Permissions.Admin)
