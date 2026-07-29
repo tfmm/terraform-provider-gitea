@@ -41,9 +41,17 @@ func resourceTeamRead(d *schema.ResourceData, meta interface{}) (err error) {
 		}
 	}
 
-	repositories, err := getTeamRepositoryNames(client, team.ID)
-	if err != nil {
-		return err
+	var repositories []string
+	if !team.IncludesAllRepositories {
+		repositories, err = getTeamRepositoryNames(client, team.ID)
+		if err != nil {
+			return err
+		}
+	} else if _, ok := d.GetOk(TeamRepositories); ok {
+		repositories, err = getTeamRepositoryNames(client, team.ID)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = setTeamResourceData(team, repositories, d)
@@ -63,16 +71,21 @@ func resourceTeamCreate(d *schema.ResourceData, meta interface{}) (err error) {
 		return
 	}
 
+	var repositories []string
 	if !opts.IncludesAllRepositories {
 		err = setTeamRepositories(team, d, meta, false)
 		if err != nil {
 			return err
 		}
-	}
-
-	repositories, err := getTeamRepositoryNames(client, team.ID)
-	if err != nil {
-		return err
+		repositories, err = getTeamRepositoryNames(client, team.ID)
+		if err != nil {
+			return err
+		}
+	} else if _, ok := d.GetOk(TeamRepositories); ok {
+		repositories, err = getTeamRepositoryNames(client, team.ID)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = setTeamResourceData(team, repositories, d)
@@ -119,9 +132,17 @@ func resourceTeamUpdate(d *schema.ResourceData, meta interface{}) (err error) {
 		return err
 	}
 
-	repositories, err := getTeamRepositoryNames(client, team.ID)
-	if err != nil {
-		return err
+	var repositories []string
+	if !team.IncludesAllRepositories {
+		repositories, err = getTeamRepositoryNames(client, team.ID)
+		if err != nil {
+			return err
+		}
+	} else if _, ok := d.GetOk(TeamRepositories); ok {
+		repositories, err = getTeamRepositoryNames(client, team.ID)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = setTeamResourceData(team, repositories, d)
@@ -359,9 +380,19 @@ func setTeamResourceData(team *gitea.Team, repositories []string, d *schema.Reso
 	} else {
 		d.Set("units_map", nil)
 	}
-	repositories = append([]string(nil), repositories...)
-	sort.Strings(repositories)
-	d.Set(TeamRepositories, stringSliceToInterfaceSlice(repositories))
+	if team.IncludesAllRepositories {
+		if _, ok := d.GetOk(TeamRepositories); !ok {
+			d.Set(TeamRepositories, nil)
+		} else {
+			repositories = append([]string(nil), repositories...)
+			sort.Strings(repositories)
+			d.Set(TeamRepositories, stringSliceToInterfaceSlice(repositories))
+		}
+	} else {
+		repositories = append([]string(nil), repositories...)
+		sort.Strings(repositories)
+		d.Set(TeamRepositories, stringSliceToInterfaceSlice(repositories))
+	}
 
 	return
 }
@@ -446,10 +477,11 @@ func resourceGiteaTeam() *schema.Resource {
 				Description: "Flag if the Teams members should have access to all Repositories in the Organisation",
 			},
 			"units": {
-				Type:     schema.TypeString,
-				Required: false,
-				Optional: true,
-				Default:  "[repo.code, repo.issues, repo.ext_issues, repo.wiki, repo.pulls, repo.releases, repo.projects, repo.ext_wiki, repo.actions, repo.packages]",
+				Type:             schema.TypeString,
+				Required:         false,
+				Optional:         true,
+				DiffSuppressFunc: unitsDiffSuppressFunc,
+				Default:          "[repo.code, repo.issues, repo.ext_issues, repo.wiki, repo.pulls, repo.releases, repo.projects, repo.ext_wiki, repo.actions, repo.packages]",
 				Description: "List of types of Repositories that should be allowed to be created from Team members.\n" +
 					"Can be `repo.code`, `repo.issues`, `repo.ext_issues`, `repo.wiki`, `repo.pulls`, `repo.releases`, `repo.projects`, `repo.ext_wiki`, `repo.actions` and/or `repo.packages`",
 			},
@@ -468,14 +500,33 @@ func resourceGiteaTeam() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Optional:    true,
-				Required:    false,
-				Computed:    true,
-				Description: "List of Repositories that should be part of this team",
+				Optional:         true,
+				Required:         false,
+				Computed:         true,
+				DiffSuppressFunc: repositoriesDiffSuppressFunc,
+				Description:      "List of Repositories that should be part of this team",
 			},
 		},
 		Description: "`gitea_team` manages Team that are part of an organisation.",
 	}
+}
+
+func unitsDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	if d != nil {
+		if _, hasUnitsMap := d.GetOk("units_map"); hasUnitsMap {
+			return true
+		}
+	}
+	return false
+}
+
+func repositoriesDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	if d != nil {
+		if includeAll, ok := d.GetOk("include_all_repositories"); ok && includeAll.(bool) {
+			return true
+		}
+	}
+	return false
 }
 
 func setTeamRepositories(team *gitea.Team, d *schema.ResourceData, meta interface{}, update bool) (err error) {
