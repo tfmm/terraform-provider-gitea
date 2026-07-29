@@ -433,3 +433,30 @@ func resourceDataStringList(d *schema.ResourceData, key string) []string {
 	}
 	return values
 }
+
+func TestDurationDiffSuppressFunc(t *testing.T) {
+	tests := []struct {
+		oldVal string
+		newVal string
+		want   bool
+	}{
+		{"8h0m0s", "8h", true},
+		{"8h", "8h0m0s", true},
+		{"1h0m0s", "1h", true},
+		{"0s", "0", true},
+		{"0", "0s", true},
+		{"24h0m0s", "24h", true},
+		{"10m0s", "10m", true},
+		{"8h0m0s", "1h0m0s", false},
+		{"8h", "1h", false},
+		{"", "", true},
+		{"8h0m0s", "", false},
+	}
+
+	for _, tc := range tests {
+		if got := durationDiffSuppressFunc("migration_mirror_interval", tc.oldVal, tc.newVal, nil); got != tc.want {
+			t.Errorf("durationDiffSuppressFunc(%q, %q) = %v; want %v", tc.oldVal, tc.newVal, got, tc.want)
+		}
+	}
+}
+
