@@ -380,21 +380,103 @@ func setTeamResourceData(team *gitea.Team, repositories []string, d *schema.Reso
 	} else {
 		d.Set("units_map", nil)
 	}
-	if team.IncludesAllRepositories {
+	if team.IncludesAllRepositories && len(repositories) == 0 {
 		if _, ok := d.GetOk(TeamRepositories); !ok {
 			d.Set(TeamRepositories, nil)
-		} else {
-			repositories = append([]string(nil), repositories...)
-			sort.Strings(repositories)
-			d.Set(TeamRepositories, stringSliceToInterfaceSlice(repositories))
+			return
 		}
-	} else {
-		repositories = append([]string(nil), repositories...)
-		sort.Strings(repositories)
-		d.Set(TeamRepositories, stringSliceToInterfaceSlice(repositories))
+	}
+
+	matchedCfg := false
+	if v, ok := d.GetOk(TeamRepositories); ok {
+		cfgSlice := v.([]interface{})
+		cfgSet := interfaceSliceToSet(cfgSlice)
+		apiSet := make(map[string]bool)
+		for _, r := range repositories {
+			apiSet[r] = true
+		}
+		if len(cfgSet) > 0 && len(cfgSet) == len(apiSet) {
+			same := true
+			for r := range cfgSet {
+				if !apiSet[r] {
+					same = false
+					break
+				}
+			}
+			if same {
+				d.Set(TeamRepositories, cfgSlice)
+				matchedCfg = true
+			}
+		}
+	}
+	if !matchedCfg {
+		sortedRepos := append([]string(nil), repositories...)
+		sort.Strings(sortedRepos)
+		d.Set(TeamRepositories, stringSliceToInterfaceSlice(sortedRepos))
 	}
 
 	return
+}
+
+func interfaceSliceToSet(v interface{}) map[string]bool {
+	set := make(map[string]bool)
+	if v == nil {
+		return set
+	}
+	switch typed := v.(type) {
+	case []interface{}:
+		for _, item := range typed {
+			if item != nil {
+				str := fmt.Sprint(item)
+				if str != "" {
+					set[str] = true
+				}
+			}
+		}
+	case []string:
+		for _, item := range typed {
+			if item != "" {
+				set[item] = true
+			}
+		}
+	case *schema.Set:
+		for _, item := range typed.List() {
+			if item != nil {
+				str := fmt.Sprint(item)
+				if str != "" {
+					set[str] = true
+				}
+			}
+		}
+	}
+	return set
+}
+
+func repositoriesDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	if old == new {
+		return true
+	}
+	if d != nil {
+		if includeAll, ok := d.Get("include_all_repositories").(bool); ok && includeAll {
+			if v, hasRepos := d.GetOk("repositories"); !hasRepos || len(v.([]interface{})) == 0 {
+				return true
+			}
+		}
+		var allSet map[string]bool
+		if v, ok := d.GetOk("repositories"); ok {
+			allSet = interfaceSliceToSet(v)
+		} else {
+			oldRaw, newRaw := d.GetChange("repositories")
+			allSet = interfaceSliceToSet(oldRaw)
+			for r := range interfaceSliceToSet(newRaw) {
+				allSet[r] = true
+			}
+		}
+		if len(allSet) > 0 && allSet[old] && allSet[new] {
+			return true
+		}
+	}
+	return false
 }
 
 func getTeamRepositoryNames(client *gitea.Client, teamID int64) ([]string, error) {
@@ -545,14 +627,7 @@ func unitsDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
 	return false
 }
 
-func repositoriesDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
-	if d != nil {
-		if includeAll, ok := d.GetOk("include_all_repositories"); ok && includeAll.(bool) {
-			return true
-		}
-	}
-	return false
-}
+
 
 func setTeamRepositories(team *gitea.Team, d *schema.ResourceData, meta interface{}, update bool) (err error) {
 	client := meta.(*gitea.Client)

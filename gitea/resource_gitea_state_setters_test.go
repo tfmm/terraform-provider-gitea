@@ -525,6 +525,29 @@ func TestUnitsDiffSuppressFunc(t *testing.T) {
 	}
 }
 
+func TestRepositoriesDiffSuppressFunc(t *testing.T) {
+	dIncludeAll := schema.TestResourceDataRaw(t, resourceGiteaTeam().Schema, map[string]interface{}{
+		"include_all_repositories": true,
+	})
+	dSpecificRepos := schema.TestResourceDataRaw(t, resourceGiteaTeam().Schema, map[string]interface{}{
+		"include_all_repositories": false,
+		"repositories": []interface{}{
+			"cloudflare-terraform",
+			"gitea-terraform",
+			"zitadel-terraform",
+			"docker-compose-stacks",
+		},
+	})
+
+	if !repositoriesDiffSuppressFunc("repositories.0", "docker-compose-stacks", "cloudflare-terraform", dIncludeAll) {
+		t.Errorf("expected repositoriesDiffSuppressFunc to return true when include_all_repositories is true")
+	}
+
+	if !repositoriesDiffSuppressFunc("repositories.1", "docker-compose-stacks", "gitea-terraform", dSpecificRepos) {
+		t.Errorf("expected repositoriesDiffSuppressFunc to return true for reordered repositories with identical set")
+	}
+}
+
 func TestDurationDiffSuppressFunc(t *testing.T) {
 	dMirrorTrue := schema.TestResourceDataRaw(t, resourceGiteaRepository().Schema, map[string]interface{}{
 		"mirror": true,
