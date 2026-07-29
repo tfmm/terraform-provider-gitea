@@ -480,3 +480,41 @@ func TestBuildEditTeamOptionsWithUnitsMap(t *testing.T) {
 	}
 }
 
+func TestDurationDiffSuppressFunc(t *testing.T) {
+	dMirrorTrue := schema.TestResourceDataRaw(t, resourceGiteaRepository().Schema, map[string]interface{}{
+		"mirror": true,
+	})
+	dMirrorFalse := schema.TestResourceDataRaw(t, resourceGiteaRepository().Schema, map[string]interface{}{
+		"mirror": false,
+	})
+
+	tests := []struct {
+		d      *schema.ResourceData
+		oldVal string
+		newVal string
+		want   bool
+	}{
+		{dMirrorTrue, "8h0m0s", "8h", true},
+		{dMirrorTrue, "8h", "8h0m0s", true},
+		{dMirrorTrue, "1h0m0s", "1h", true},
+		{dMirrorTrue, "0s", "0", true},
+		{dMirrorTrue, "0", "0s", true},
+		{dMirrorTrue, "24h0m0s", "24h", true},
+		{dMirrorTrue, "10m0s", "10m", true},
+		{dMirrorTrue, "8h0m0s", "1h0m0s", false},
+		{dMirrorTrue, "8h", "1h", false},
+		{dMirrorTrue, "", "", true},
+		{dMirrorTrue, "8h0m0s", "", false},
+
+		// For non-mirror repositories, diff on migration_mirror_interval should always be suppressed
+		{dMirrorFalse, "", "8h0m0s", true},
+		{dMirrorFalse, "8h0m0s", "", true},
+		{dMirrorFalse, "", "1h", true},
+	}
+
+	for _, tc := range tests {
+		if got := durationDiffSuppressFunc("migration_mirror_interval", tc.oldVal, tc.newVal, tc.d); got != tc.want {
+			t.Errorf("durationDiffSuppressFunc(%q, %q) = %v; want %v", tc.oldVal, tc.newVal, got, tc.want)
+		}
+	}
+}

@@ -8,11 +8,39 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
+
+func normalizeDuration(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return ""
+	}
+	if s == "0" {
+		return "0s"
+	}
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		return s
+	}
+	return d.String()
+}
+
+func durationDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	if d != nil {
+		if mirror, ok := d.GetOk(repoMirror); !ok || !mirror.(bool) {
+			return true
+		}
+	}
+	if old == "" || new == "" {
+		return old == new
+	}
+	return normalizeDuration(old) == normalizeDuration(new)
+}
 
 const (
 	repoOwner                    string = "username"
@@ -298,12 +326,12 @@ func resourceRepoUpdate(d *schema.ResourceData, meta interface{}) (err error) {
 		opts.DefaultMergeStyle = &mergeStyle
 	}
 
+	var archived bool = d.Get(repoArchived).(bool)
+	opts.Archived = &archived
+
 	if d.Get(repoMirror).(bool) {
 		var mirrorInterval string = d.Get(migrationMirrorInterval).(string)
 		opts.MirrorInterval = &mirrorInterval
-	} else {
-		var archived bool = d.Get(repoArchived).(bool)
-		opts.Archived = &archived
 	}
 
 	currentRepoName := ""
@@ -439,7 +467,11 @@ func setRepoResourceData(repo *gitea.Repository, d *schema.ResourceData) (err er
 	d.Set(repoAllowSquash, repo.AllowSquash)
 	d.Set(repoArchived, repo.Archived)
 	d.Set(repoDefaultMergeStyle, string(repo.DefaultMergeStyle))
-	d.Set(migrationMirrorInterval, repo.MirrorInterval)
+	if repo.Mirror {
+		d.Set(migrationMirrorInterval, repo.MirrorInterval)
+	} else {
+		d.Set(migrationMirrorInterval, "")
+	}
 	if repo.Permissions != nil {
 		d.Set("permission_admin", repo.Permissions.Admin)
 		d.Set("permission_push", repo.Permissions.Push)
@@ -711,11 +743,12 @@ func resourceGiteaRepository() *schema.Resource {
 				Default:  true,
 			},
 			"migration_mirror_interval": {
-				Type:        schema.TypeString,
-				Required:    false,
-				Optional:    true,
-				Default:     "8h0m0s",
-				Description: "valid time units are 'h', 'm', 's'. 0 to disable automatic sync",
+				Type:             schema.TypeString,
+				Required:         false,
+				Optional:         true,
+				Default:          "8h0m0s",
+				DiffSuppressFunc: durationDiffSuppressFunc,
+				Description:      "valid time units are 'h', 'm', 's'. 0 to disable automatic sync",
 			},
 			"migration_lfs": {
 				Type:     schema.TypeBool,
