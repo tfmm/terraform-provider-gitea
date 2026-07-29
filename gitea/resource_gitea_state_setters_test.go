@@ -486,6 +486,28 @@ func TestBuildEditTeamOptionsWithUnitsMap(t *testing.T) {
 	}
 }
 
+func TestUnitsMapDiffSuppressFunc(t *testing.T) {
+	tests := []struct {
+		key    string
+		oldVal string
+		newVal string
+		want   bool
+	}{
+		{"units_map.repo.ext_issues", "read", "write", true},
+		{"units_map.repo.ext_issues", "write", "read", true},
+		{"units_map.repo.ext_wiki", "read", "write", true},
+		{"units_map.repo.ext_wiki", "write", "read", true},
+		{"units_map.repo.code", "read", "write", false},
+		{"units_map.repo.code", "write", "write", true},
+	}
+
+	for _, tc := range tests {
+		if got := unitsMapDiffSuppressFunc(tc.key, tc.oldVal, tc.newVal, nil); got != tc.want {
+			t.Errorf("unitsMapDiffSuppressFunc(%q, %q, %q) = %v; want %v", tc.key, tc.oldVal, tc.newVal, got, tc.want)
+		}
+	}
+}
+
 func TestDurationDiffSuppressFunc(t *testing.T) {
 	dMirrorTrue := schema.TestResourceDataRaw(t, resourceGiteaRepository().Schema, map[string]interface{}{
 		"mirror": true,

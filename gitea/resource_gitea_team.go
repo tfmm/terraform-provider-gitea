@@ -136,7 +136,11 @@ func buildCreateTeamOptions(d *schema.ResourceData) gitea.CreateTeamOption {
 	if v, ok := d.GetOk("units_map"); ok {
 		unitsMap = make(map[string]string)
 		for k, val := range v.(map[string]interface{}) {
-			unitsMap[k] = val.(string)
+			perm := val.(string)
+			if (k == "repo.ext_issues" || k == "repo.ext_wiki") && perm == "write" {
+				perm = "read"
+			}
+			unitsMap[k] = perm
 		}
 	} else {
 		units = buildUnitsFromSchema(d)
@@ -163,7 +167,11 @@ func buildEditTeamOptions(d *schema.ResourceData) gitea.EditTeamOption {
 	if v, ok := d.GetOk("units_map"); ok {
 		unitsMap = make(map[string]string)
 		for k, val := range v.(map[string]interface{}) {
-			unitsMap[k] = val.(string)
+			perm := val.(string)
+			if (k == "repo.ext_issues" || k == "repo.ext_wiki") && perm == "write" {
+				perm = "read"
+			}
+			unitsMap[k] = perm
 		}
 	} else {
 		units = buildUnitsFromSchema(d)
@@ -183,6 +191,22 @@ func buildEditTeamOptions(d *schema.ResourceData) gitea.EditTeamOption {
 		Units:                   units,
 		UnitsMap:                unitsMap,
 	}
+}
+
+func unitsMapDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	if old == new {
+		return true
+	}
+	parts := strings.Split(k, ".")
+	if len(parts) >= 2 {
+		unitName := strings.Join(parts[1:], ".")
+		if unitName == "repo.ext_issues" || unitName == "repo.ext_wiki" {
+			if (old == "read" && new == "write") || (old == "write" && new == "read") {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func getEffectivePermission(d *schema.ResourceData, unitsMap map[string]string) gitea.AccessMode {
@@ -310,16 +334,19 @@ func setTeamResourceData(team *gitea.Team, repositories []string, d *schema.Reso
 		}
 
 		for k := range configMap {
+			cfgVal, _ := configMap[k].(string)
 			if team.UnitsMap != nil {
 				if apiVal, exists := team.UnitsMap[k]; exists && apiVal != "" {
+					if cfgVal == "write" && (apiVal == "read" || apiVal == "write") {
+						stateMap[k] = "write"
+						continue
+					}
 					stateMap[k] = apiVal
 					continue
 				}
 			}
 			if enabledUnits[k] {
-				if team.Permission == gitea.AccessModeWrite || team.Permission == gitea.AccessModeAdmin || team.Permission == gitea.AccessModeOwner {
-					stateMap[k] = string(team.Permission)
-				} else if cfgVal, ok := configMap[k].(string); ok && cfgVal != "" {
+				if cfgVal != "" {
 					stateMap[k] = cfgVal
 				} else {
 					stateMap[k] = "read"
@@ -427,9 +454,10 @@ func resourceGiteaTeam() *schema.Resource {
 					"Can be `repo.code`, `repo.issues`, `repo.ext_issues`, `repo.wiki`, `repo.pulls`, `repo.releases`, `repo.projects`, `repo.ext_wiki`, `repo.actions` and/or `repo.packages`",
 			},
 			"units_map": {
-				Type:        schema.TypeMap,
-				Optional:    true,
-				Computed:    true,
+				Type:             schema.TypeMap,
+				Optional:         true,
+				Computed:         true,
+				DiffSuppressFunc: unitsMapDiffSuppressFunc,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
