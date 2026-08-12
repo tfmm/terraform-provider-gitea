@@ -472,4 +472,3 @@ func TestDurationDiffSuppressFunc(t *testing.T) {
 		}
 	}
 }
-

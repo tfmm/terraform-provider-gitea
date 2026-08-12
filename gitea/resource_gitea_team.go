@@ -384,9 +384,9 @@ func resourceGiteaTeam() *schema.Resource {
 					"Can be `repo.code`, `repo.issues`, `repo.ext_issues`, `repo.wiki`, `repo.pulls`, `repo.releases`, `repo.projects`, `repo.ext_wiki`, `repo.actions` and/or `repo.packages`",
 			},
 			"units_map": {
-				Type:        schema.TypeMap,
-				Optional:    true,
-				Computed:    true,
+				Type:     schema.TypeMap,
+				Optional: true,
+				Computed: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},

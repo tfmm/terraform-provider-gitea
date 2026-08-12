@@ -46,8 +46,8 @@ func dataSourceGiteaTeam() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"units_map": {
-				Type:        schema.TypeMap,
-				Computed:    true,
+				Type:     schema.TypeMap,
+				Computed: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
