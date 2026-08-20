@@ -13,28 +13,23 @@ jobs:
     if: github.repository == 'tfmm/terraform-provider-gitea'
     runs-on: ubuntu-latest
     steps:
-      -
-        name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-      -
-        name: Unshallow
-        run: git fetch --prune --unshallow
-      -
-        name: Set up Go
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
           go-version-file: 'go.mod'
           cache: true
-      -
-        name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
         id: import_gpg
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
-      -
-        name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
         with:
           version: '~> v2'
           args: release --clean
