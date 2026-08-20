@@ -144,10 +144,10 @@ func resourceRepositoryBranchProtectionCreate(d *schema.ResourceData, meta inter
 		BlockOnOutdatedBranch:         d.Get(repoBPBlockMergeOnOutdatedBranch).(bool),
 		DismissStaleApprovals:         d.Get(repoBPDismissStaleApprovals).(bool),
 		// IgnoreStaleApprovals:          d.Get(repoBPIgnoreStaleApprovals).(bool),
-		RequireSignedCommits:      d.Get(repoBPRequireSignedCommits).(bool),
-		ProtectedFilePatterns:     d.Get(repoBPProtectedFilePatterns).(string),
-		UnprotectedFilePatterns:   d.Get(repoBPUnprotectedFilePatterns).(string),
-		BlockAdminMergeOverride:   d.Get(repoBPBlockAdminMergeOverride).(bool),
+		RequireSignedCommits:    d.Get(repoBPRequireSignedCommits).(bool),
+		ProtectedFilePatterns:   d.Get(repoBPProtectedFilePatterns).(string),
+		UnprotectedFilePatterns: d.Get(repoBPUnprotectedFilePatterns).(string),
+		BlockAdminMergeOverride: d.Get(repoBPBlockAdminMergeOverride).(bool),
 	}
 
 	bp, _, err := client.CreateBranchProtection(user, repo, bpOption)
@@ -215,10 +215,10 @@ func resourceRepositoryBranchProtectionUpdate(d *schema.ResourceData, meta inter
 		BlockOnOutdatedBranch:         &blockOnOutdatedBranch,
 		DismissStaleApprovals:         &dismissStaleApprovals,
 		// IgnoreStaleApprovals:          &ignoreStaleApprovals,
-		RequireSignedCommits:      &requireSignedCommits,
-		ProtectedFilePatterns:     &protectedFilePatterns,
-		UnprotectedFilePatterns:   &unprotectedFilePatterns,
-		BlockAdminMergeOverride:   &blockAdminMergeOverride,
+		RequireSignedCommits:    &requireSignedCommits,
+		ProtectedFilePatterns:   &protectedFilePatterns,
+		UnprotectedFilePatterns: &unprotectedFilePatterns,
+		BlockAdminMergeOverride: &blockAdminMergeOverride,
 	}
 
 	bp, _, err := client.EditBranchProtection(user, repo, rule_name, bpOption)

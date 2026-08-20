@@ -118,6 +118,7 @@ func Provider() *schema.Provider {
 			"gitea_issue_attachment":                  resourceGiteaIssueAttachment(),
 			"gitea_issue_comment_attachment":          resourceGiteaIssueCommentAttachment(),
 			"gitea_repository_actions_workflow_state": resourceGiteaRepositoryActionsWorkflowState(),
+			"gitea_push_mirror":                       resourceGiteaPushMirror(),
 		},
 
 		ConfigureFunc: providerConfigure,
