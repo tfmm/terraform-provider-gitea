@@ -41,9 +41,17 @@ func resourceTeamRead(d *schema.ResourceData, meta interface{}) (err error) {
 		}
 	}
 
-	repositories, err := getTeamRepositoryNames(client, team.ID)
-	if err != nil {
-		return err
+	var repositories []string
+	if !team.IncludesAllRepositories {
+		repositories, err = getTeamRepositoryNames(client, team.ID)
+		if err != nil {
+			return err
+		}
+	} else if _, ok := d.GetOk(TeamRepositories); ok {
+		repositories, err = getTeamRepositoryNames(client, team.ID)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = setTeamResourceData(team, repositories, d)
@@ -55,62 +63,7 @@ func resourceTeamCreate(d *schema.ResourceData, meta interface{}) (err error) {
 	client := meta.(*gitea.Client)
 
 	var team *gitea.Team
-	var units []gitea.RepoUnitType
-	var unitsMap map[string]string
-
-	if v, ok := d.GetOk("units_map"); ok {
-		unitsMap = make(map[string]string)
-		for k, val := range v.(map[string]interface{}) {
-			permission := val.(string)
-			unitsMap[k] = permission
-			if permission != "none" {
-				units = append(units, gitea.RepoUnitType(k))
-			}
-		}
-	} else {
-		if strings.Contains(d.Get(TeamUnits).(string), "repo.code") {
-			units = append(units, gitea.RepoUnitCode)
-		}
-		if strings.Contains(d.Get(TeamUnits).(string), "repo.issues") {
-			units = append(units, gitea.RepoUnitIssues)
-		}
-		if strings.Contains(d.Get(TeamUnits).(string), "repo.ext_issues") {
-			units = append(units, gitea.RepoUnitExtIssues)
-		}
-		if strings.Contains(d.Get(TeamUnits).(string), "repo.wiki") {
-			units = append(units, gitea.RepoUnitWiki)
-		}
-		if strings.Contains(d.Get(TeamUnits).(string), "repo.pulls") {
-			units = append(units, gitea.RepoUnitPulls)
-		}
-		if strings.Contains(d.Get(TeamUnits).(string), "repo.releases") {
-			units = append(units, gitea.RepoUnitReleases)
-		}
-		if strings.Contains(d.Get(TeamUnits).(string), "repo.ext_wiki") {
-			units = append(units, gitea.RepoUnitExtWiki)
-		}
-		if strings.Contains(d.Get(TeamUnits).(string), "repo.projects") {
-			units = append(units, gitea.RepoUnitProjects)
-		}
-		if strings.Contains(d.Get(TeamUnits).(string), "repo.actions") {
-			units = append(units, gitea.RepoUnitActions)
-		}
-		if strings.Contains(d.Get(TeamUnits).(string), "repo.packages") {
-			units = append(units, gitea.RepoUnitPackages)
-		}
-	}
-
-	includeAllRepos := d.Get(TeamIncludeAllReposFlag).(bool)
-
-	opts := gitea.CreateTeamOption{
-		Name:                    d.Get(TeamName).(string),
-		Description:             d.Get(TeamDescription).(string),
-		Permission:              gitea.AccessMode(d.Get(TeamPermissions).(string)),
-		CanCreateOrgRepo:        d.Get(TeamCreateRepoFlag).(bool),
-		IncludesAllRepositories: includeAllRepos,
-		Units:                   units,
-		UnitsMap:                unitsMap,
-	}
+	opts := buildCreateTeamOptions(d)
 
 	team, _, err = client.CreateTeam(d.Get(TeamOrg).(string), opts)
 
@@ -118,16 +71,21 @@ func resourceTeamCreate(d *schema.ResourceData, meta interface{}) (err error) {
 		return
 	}
 
-	if !includeAllRepos {
+	var repositories []string
+	if !opts.IncludesAllRepositories {
 		err = setTeamRepositories(team, d, meta, false)
 		if err != nil {
 			return err
 		}
-	}
-
-	repositories, err := getTeamRepositoryNames(client, team.ID)
-	if err != nil {
-		return err
+		repositories, err = getTeamRepositoryNames(client, team.ID)
+		if err != nil {
+			return err
+		}
+	} else if _, ok := d.GetOk(TeamRepositories); ok {
+		repositories, err = getTeamRepositoryNames(client, team.ID)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = setTeamResourceData(team, repositories, d)
@@ -153,64 +111,7 @@ func resourceTeamUpdate(d *schema.ResourceData, meta interface{}) (err error) {
 		}
 	}
 
-	description := d.Get(TeamDescription).(string)
-	canCreateRepo := d.Get(TeamCreateRepoFlag).(bool)
-	includeAllRepos := d.Get(TeamIncludeAllReposFlag).(bool)
-
-	var units []gitea.RepoUnitType
-	var unitsMap map[string]string
-
-	if v, ok := d.GetOk("units_map"); ok {
-		unitsMap = make(map[string]string)
-		for k, val := range v.(map[string]interface{}) {
-			permission := val.(string)
-			unitsMap[k] = permission
-			if permission != "none" {
-				units = append(units, gitea.RepoUnitType(k))
-			}
-		}
-	} else {
-		if strings.Contains(d.Get(TeamUnits).(string), "repo.code") {
-			units = append(units, gitea.RepoUnitCode)
-		}
-		if strings.Contains(d.Get(TeamUnits).(string), "repo.issues") {
-			units = append(units, gitea.RepoUnitIssues)
-		}
-		if strings.Contains(d.Get(TeamUnits).(string), "repo.ext_issues") {
-			units = append(units, gitea.RepoUnitExtIssues)
-		}
-		if strings.Contains(d.Get(TeamUnits).(string), "repo.wiki") {
-			units = append(units, gitea.RepoUnitWiki)
-		}
-		if strings.Contains(d.Get(TeamUnits).(string), "repo.pulls") {
-			units = append(units, gitea.RepoUnitPulls)
-		}
-		if strings.Contains(d.Get(TeamUnits).(string), "repo.releases") {
-			units = append(units, gitea.RepoUnitReleases)
-		}
-		if strings.Contains(d.Get(TeamUnits).(string), "repo.ext_wiki") {
-			units = append(units, gitea.RepoUnitExtWiki)
-		}
-		if strings.Contains(d.Get(TeamUnits).(string), "repo.projects") {
-			units = append(units, gitea.RepoUnitProjects)
-		}
-		if strings.Contains(d.Get(TeamUnits).(string), "repo.actions") {
-			units = append(units, gitea.RepoUnitActions)
-		}
-		if strings.Contains(d.Get(TeamUnits).(string), "repo.packages") {
-			units = append(units, gitea.RepoUnitPackages)
-		}
-	}
-
-	opts := gitea.EditTeamOption{
-		Name:                    d.Get(TeamName).(string),
-		Description:             &description,
-		Permission:              gitea.AccessMode(d.Get(TeamPermissions).(string)),
-		CanCreateOrgRepo:        &canCreateRepo,
-		IncludesAllRepositories: &includeAllRepos,
-		Units:                   units,
-		UnitsMap:                unitsMap,
-	}
+	opts := buildEditTeamOptions(d)
 
 	resp, err = client.EditTeam(id, opts)
 
@@ -218,6 +119,7 @@ func resourceTeamUpdate(d *schema.ResourceData, meta interface{}) (err error) {
 		return err
 	}
 
+	includeAllRepos := d.Get(TeamIncludeAllReposFlag).(bool)
 	if !includeAllRepos {
 		err = setTeamRepositories(team, d, meta, true)
 		if err != nil {
@@ -230,14 +132,182 @@ func resourceTeamUpdate(d *schema.ResourceData, meta interface{}) (err error) {
 		return err
 	}
 
-	repositories, err := getTeamRepositoryNames(client, team.ID)
-	if err != nil {
-		return err
+	var repositories []string
+	if !team.IncludesAllRepositories {
+		repositories, err = getTeamRepositoryNames(client, team.ID)
+		if err != nil {
+			return err
+		}
+	} else if _, ok := d.GetOk(TeamRepositories); ok {
+		repositories, err = getTeamRepositoryNames(client, team.ID)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = setTeamResourceData(team, repositories, d)
 
 	return
+}
+
+func buildCreateTeamOptions(d *schema.ResourceData) gitea.CreateTeamOption {
+	var units []gitea.RepoUnitType
+	var unitsMap map[string]string
+
+	if v, ok := d.GetOk("units_map"); ok {
+		unitsMap = make(map[string]string)
+		for k, val := range v.(map[string]interface{}) {
+			perm := val.(string)
+			if (k == "repo.ext_issues" || k == "repo.ext_wiki") && perm == "write" {
+				perm = "read"
+			}
+			unitsMap[k] = perm
+		}
+	} else {
+		units = buildUnitsFromSchema(d)
+	}
+
+	includeAllRepos := d.Get(TeamIncludeAllReposFlag).(bool)
+	effectivePerm := getEffectivePermission(d, unitsMap)
+
+	return gitea.CreateTeamOption{
+		Name:                    d.Get(TeamName).(string),
+		Description:             d.Get(TeamDescription).(string),
+		Permission:              effectivePerm,
+		CanCreateOrgRepo:        d.Get(TeamCreateRepoFlag).(bool),
+		IncludesAllRepositories: includeAllRepos,
+		Units:                   units,
+		UnitsMap:                unitsMap,
+	}
+}
+
+func buildEditTeamOptions(d *schema.ResourceData) gitea.EditTeamOption {
+	var units []gitea.RepoUnitType
+	var unitsMap map[string]string
+
+	if v, ok := d.GetOk("units_map"); ok {
+		unitsMap = make(map[string]string)
+		for k, val := range v.(map[string]interface{}) {
+			perm := val.(string)
+			if (k == "repo.ext_issues" || k == "repo.ext_wiki") && perm == "write" {
+				perm = "read"
+			}
+			unitsMap[k] = perm
+		}
+	} else {
+		units = buildUnitsFromSchema(d)
+	}
+
+	description := d.Get(TeamDescription).(string)
+	canCreateRepo := d.Get(TeamCreateRepoFlag).(bool)
+	includeAllRepos := d.Get(TeamIncludeAllReposFlag).(bool)
+	effectivePerm := getEffectivePermission(d, unitsMap)
+
+	return gitea.EditTeamOption{
+		Name:                    d.Get(TeamName).(string),
+		Description:             &description,
+		Permission:              effectivePerm,
+		CanCreateOrgRepo:        &canCreateRepo,
+		IncludesAllRepositories: &includeAllRepos,
+		Units:                   units,
+		UnitsMap:                unitsMap,
+	}
+}
+
+func unitsMapDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	if old == new {
+		return true
+	}
+	parts := strings.Split(k, ".")
+	if len(parts) >= 2 {
+		unitName := strings.Join(parts[1:], ".")
+		if unitName == "repo.ext_issues" || unitName == "repo.ext_wiki" {
+			if (old == "read" && new == "write") || (old == "write" && new == "read") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func getEffectivePermission(d *schema.ResourceData, unitsMap map[string]string) gitea.AccessMode {
+	permStr := d.Get(TeamPermissions).(string)
+	if permStr != "" {
+		userPerm := gitea.AccessMode(permStr)
+		maxMapPerm := maxPermissionFromMap(unitsMap)
+		if permissionRank(userPerm) < permissionRank(maxMapPerm) {
+			return maxMapPerm
+		}
+		return userPerm
+	}
+	if len(unitsMap) > 0 {
+		return maxPermissionFromMap(unitsMap)
+	}
+	return gitea.AccessModeRead
+}
+
+func maxPermissionFromMap(unitsMap map[string]string) gitea.AccessMode {
+	maxPerm := gitea.AccessModeRead
+	for _, p := range unitsMap {
+		mode := gitea.AccessMode(p)
+		if permissionRank(mode) > permissionRank(maxPerm) {
+			maxPerm = mode
+		}
+	}
+	return maxPerm
+}
+
+func permissionRank(mode gitea.AccessMode) int {
+	switch strings.ToLower(string(mode)) {
+	case "none":
+		return 0
+	case "read":
+		return 1
+	case "write":
+		return 2
+	case "admin":
+		return 3
+	case "owner":
+		return 4
+	default:
+		return 1
+	}
+}
+
+func buildUnitsFromSchema(d *schema.ResourceData) []gitea.RepoUnitType {
+	var units []gitea.RepoUnitType
+	unitsString := d.Get(TeamUnits).(string)
+	if strings.Contains(unitsString, "repo.code") {
+		units = append(units, gitea.RepoUnitCode)
+	}
+	if strings.Contains(unitsString, "repo.issues") {
+		units = append(units, gitea.RepoUnitIssues)
+	}
+	if strings.Contains(unitsString, "repo.ext_issues") {
+		units = append(units, gitea.RepoUnitExtIssues)
+	}
+	if strings.Contains(unitsString, "repo.wiki") {
+		units = append(units, gitea.RepoUnitWiki)
+	}
+	if strings.Contains(unitsString, "repo.pulls") {
+		units = append(units, gitea.RepoUnitPulls)
+	}
+	if strings.Contains(unitsString, "repo.releases") {
+		units = append(units, gitea.RepoUnitReleases)
+	}
+	if strings.Contains(unitsString, "repo.ext_wiki") {
+		units = append(units, gitea.RepoUnitExtWiki)
+	}
+	if strings.Contains(unitsString, "repo.projects") {
+		units = append(units, gitea.RepoUnitProjects)
+	}
+	if strings.Contains(unitsString, "repo.actions") {
+		units = append(units, gitea.RepoUnitActions)
+	}
+	if strings.Contains(unitsString, "repo.packages") {
+		units = append(units, gitea.RepoUnitPackages)
+	}
+	return units
 }
 
 func resourceTeamDelete(d *schema.ResourceData, meta interface{}) (err error) {
@@ -270,30 +340,143 @@ func setTeamResourceData(team *gitea.Team, repositories []string, d *schema.Reso
 	d.Set(TeamCreateRepoFlag, team.CanCreateOrgRepo)
 	d.Set(TeamDescription, team.Description)
 	d.Set(TeamName, team.Name)
-	d.Set(TeamPermissions, string(team.Permission))
+	if _, hasUnitsMap := d.GetOk("units_map"); !hasUnitsMap || d.Get(TeamPermissions).(string) != "" {
+		d.Set(TeamPermissions, string(team.Permission))
+	}
 	d.Set(TeamIncludeAllReposFlag, team.IncludesAllRepositories)
 	d.Set(TeamUnits, fmt.Sprintf("%v", team.Units))
 	if v, ok := d.GetOk("units_map"); ok {
 		configMap := v.(map[string]interface{})
 		stateMap := make(map[string]string)
+
+		enabledUnits := make(map[string]bool)
+		for _, u := range team.Units {
+			enabledUnits[string(u)] = true
+		}
+
 		for k := range configMap {
+			cfgVal, _ := configMap[k].(string)
 			if team.UnitsMap != nil {
-				if apiVal, exists := team.UnitsMap[k]; exists {
+				if apiVal, exists := team.UnitsMap[k]; exists && apiVal != "" {
+					if cfgVal == "write" && (apiVal == "read" || apiVal == "write") {
+						stateMap[k] = "write"
+						continue
+					}
 					stateMap[k] = apiVal
 					continue
 				}
 			}
-			stateMap[k] = "none"
+			if enabledUnits[k] {
+				if cfgVal != "" {
+					stateMap[k] = cfgVal
+				} else {
+					stateMap[k] = "read"
+				}
+			} else {
+				stateMap[k] = "none"
+			}
 		}
 		d.Set("units_map", stateMap)
 	} else {
 		d.Set("units_map", nil)
 	}
-	repositories = append([]string(nil), repositories...)
-	sort.Strings(repositories)
-	d.Set(TeamRepositories, stringSliceToInterfaceSlice(repositories))
+	if team.IncludesAllRepositories && len(repositories) == 0 {
+		if _, ok := d.GetOk(TeamRepositories); !ok {
+			d.Set(TeamRepositories, nil)
+			return
+		}
+	}
+
+	matchedCfg := false
+	if v, ok := d.GetOk(TeamRepositories); ok {
+		cfgSlice := v.([]interface{})
+		cfgSet := interfaceSliceToSet(cfgSlice)
+		apiSet := make(map[string]bool)
+		for _, r := range repositories {
+			apiSet[r] = true
+		}
+		if len(cfgSet) > 0 && len(cfgSet) == len(apiSet) {
+			same := true
+			for r := range cfgSet {
+				if !apiSet[r] {
+					same = false
+					break
+				}
+			}
+			if same {
+				d.Set(TeamRepositories, cfgSlice)
+				matchedCfg = true
+			}
+		}
+	}
+	if !matchedCfg {
+		sortedRepos := append([]string(nil), repositories...)
+		sort.Strings(sortedRepos)
+		d.Set(TeamRepositories, stringSliceToInterfaceSlice(sortedRepos))
+	}
 
 	return
+}
+
+func interfaceSliceToSet(v interface{}) map[string]bool {
+	set := make(map[string]bool)
+	if v == nil {
+		return set
+	}
+	switch typed := v.(type) {
+	case []interface{}:
+		for _, item := range typed {
+			if item != nil {
+				str := fmt.Sprint(item)
+				if str != "" {
+					set[str] = true
+				}
+			}
+		}
+	case []string:
+		for _, item := range typed {
+			if item != "" {
+				set[item] = true
+			}
+		}
+	case *schema.Set:
+		for _, item := range typed.List() {
+			if item != nil {
+				str := fmt.Sprint(item)
+				if str != "" {
+					set[str] = true
+				}
+			}
+		}
+	}
+	return set
+}
+
+func repositoriesDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	if old == new {
+		return true
+	}
+	if d != nil {
+		if includeAll, ok := d.Get("include_all_repositories").(bool); ok && includeAll {
+			if v, hasRepos := d.GetOk("repositories"); !hasRepos || len(v.([]interface{})) == 0 {
+				return true
+			}
+		}
+		var allSet map[string]bool
+		if v, ok := d.GetOk("repositories"); ok {
+			allSet = interfaceSliceToSet(v)
+		} else {
+			oldRaw, newRaw := d.GetChange("repositories")
+			allSet = interfaceSliceToSet(oldRaw)
+			for r := range interfaceSliceToSet(newRaw) {
+				allSet[r] = true
+			}
+		}
+		if len(allSet) > 0 && allSet[old] && allSet[new] {
+			return true
+		}
+	}
+	return false
 }
 
 func getTeamRepositoryNames(client *gitea.Client, teamID int64) ([]string, error) {
@@ -376,17 +559,19 @@ func resourceGiteaTeam() *schema.Resource {
 				Description: "Flag if the Teams members should have access to all Repositories in the Organisation",
 			},
 			"units": {
-				Type:     schema.TypeString,
-				Required: false,
-				Optional: true,
-				Default:  "[repo.code, repo.issues, repo.ext_issues, repo.wiki, repo.pulls, repo.releases, repo.projects, repo.ext_wiki, repo.actions, repo.packages]",
+				Type:             schema.TypeString,
+				Required:         false,
+				Optional:         true,
+				DiffSuppressFunc: unitsDiffSuppressFunc,
+				Default:          "[repo.code, repo.issues, repo.ext_issues, repo.wiki, repo.pulls, repo.releases, repo.projects, repo.ext_wiki, repo.actions, repo.packages]",
 				Description: "List of types of Repositories that should be allowed to be created from Team members.\n" +
 					"Can be `repo.code`, `repo.issues`, `repo.ext_issues`, `repo.wiki`, `repo.pulls`, `repo.releases`, `repo.projects`, `repo.ext_wiki`, `repo.actions` and/or `repo.packages`",
 			},
 			"units_map": {
-				Type:     schema.TypeMap,
-				Optional: true,
-				Computed: true,
+				Type:             schema.TypeMap,
+				Optional:         true,
+				Computed:         true,
+				DiffSuppressFunc: unitsMapDiffSuppressFunc,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
@@ -397,15 +582,52 @@ func resourceGiteaTeam() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Optional:    true,
-				Required:    false,
-				Computed:    true,
-				Description: "List of Repositories that should be part of this team",
+				Optional:         true,
+				Required:         false,
+				Computed:         true,
+				DiffSuppressFunc: repositoriesDiffSuppressFunc,
+				Description:      "List of Repositories that should be part of this team",
 			},
 		},
 		Description: "`gitea_team` manages Team that are part of an organisation.",
 	}
 }
+
+func parseUnitsSet(s string) map[string]bool {
+	s = strings.ReplaceAll(s, "[", "")
+	s = strings.ReplaceAll(s, "]", "")
+	s = strings.ReplaceAll(s, ",", " ")
+	fields := strings.Fields(s)
+	set := make(map[string]bool)
+	for _, f := range fields {
+		set[f] = true
+	}
+	return set
+}
+
+func unitsDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	if old == new {
+		return true
+	}
+	if d != nil {
+		if _, hasUnitsMap := d.GetOk("units_map"); hasUnitsMap {
+			return true
+		}
+	}
+	oldSet := parseUnitsSet(old)
+	newSet := parseUnitsSet(new)
+	if len(oldSet) > 0 && len(oldSet) == len(newSet) {
+		for u := range oldSet {
+			if !newSet[u] {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
+
 
 func setTeamRepositories(team *gitea.Team, d *schema.ResourceData, meta interface{}, update bool) (err error) {
 	client := meta.(*gitea.Client)
