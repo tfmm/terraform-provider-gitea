@@ -37,11 +37,20 @@ jobs:
           gpg --list-secret-keys
         env:
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
-      - name: Run GoReleaser
+      - name: Setup GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
+          install-only: true
           version: '~> v2'
-          args: release --clean --verbose
+      - name: Run GoReleaser
+        run: |
+          goreleaser release --clean --verbose 2>&1 | tee /tmp/goreleaser.log || {
+            echo "### GoReleaser Execution Log" >> $GITHUB_STEP_SUMMARY
+            echo '```text' >> $GITHUB_STEP_SUMMARY
+            cat /tmp/goreleaser.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          }
         env:
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
           # GitHub sets this automatically
