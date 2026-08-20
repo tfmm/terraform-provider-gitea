@@ -28,6 +28,15 @@ jobs:
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
+      - name: Verify GPG Key Import
+        run: |
+          echo "Imported GPG Fingerprint: '${GPG_FINGERPRINT}'"
+          if [ -z "${GPG_FINGERPRINT}" ]; then
+            echo "::error::GPG_FINGERPRINT is empty! Please check if GPG_PRIVATE_KEY secret is configured in GitHub repository settings."
+          fi
+          gpg --list-secret-keys
+        env:
+          GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
