@@ -26,6 +26,6 @@ jobs:
             exit 1
           fi
 
-          git remote add github "https://x-access-token:${MIRROR_TOKEN}@github.com/go-gitea/terraform-provider-gitea.git"
+          git remote add github "https://x-access-token:${MIRROR_TOKEN}@github.com/tfmm/terraform-provider-gitea.git"
           git push github HEAD:refs/heads/main
           git push github --tags

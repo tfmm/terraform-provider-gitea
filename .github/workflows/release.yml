@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   goreleaser:
-    if: github.repository == 'go-gitea/terraform-provider-gitea'
+    if: github.repository == 'tfmm/terraform-provider-gitea'
     runs-on: ubuntu-latest
     steps:
       -
