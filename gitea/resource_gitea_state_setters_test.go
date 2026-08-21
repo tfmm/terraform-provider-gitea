@@ -2,6 +2,7 @@ package gitea
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 	"time"
 
@@ -49,7 +50,7 @@ func TestSetRepositoryWebhookDataUsesHookFields(t *testing.T) {
 	if got := d.Get(repoWebhookContentType).(string); got != "json" {
 		t.Fatalf("expected content_type json, got %q", got)
 	}
-	if got := resourceDataStringList(d, repoWebhookEvents); !reflect.DeepEqual(got, []string{"push", "pull_request"}) {
+	if got := resourceDataStringList(d, repoWebhookEvents); !reflect.DeepEqual(got, []string{"old", "pull_request", "push"}) {
 		t.Fatalf("expected events from hook, got %#v", got)
 	}
 	if got := d.Get(repoWebhookBranchFilter).(string); got != "feature/*" {
@@ -424,6 +425,10 @@ func resourceDataStringList(d *schema.ResourceData, key string) []string {
 	raw := d.Get(key)
 	values := make([]string, 0)
 	switch typed := raw.(type) {
+	case *schema.Set:
+		for _, value := range typed.List() {
+			values = append(values, value.(string))
+		}
 	case []interface{}:
 		for _, value := range typed {
 			values = append(values, value.(string))
@@ -431,7 +436,85 @@ func resourceDataStringList(d *schema.ResourceData, key string) []string {
 	case []string:
 		values = append(values, typed...)
 	}
+	sort.Strings(values)
 	return values
+}
+
+func TestSetRepositoryWebhookDataConfigNilWhenUnsetInHCL(t *testing.T) {
+	d := schema.TestResourceDataRaw(t, resourceGiteaRepositoryWebhook().Schema, map[string]interface{}{
+		"username":     "owner",
+		"name":         "repo",
+		"type":         "gitea",
+		"url":          "https://example.com/webhook",
+		"content_type": "json",
+		"events":       []interface{}{"push"},
+	})
+
+	hook := &gitea.Hook{
+		ID:     1,
+		Type:   "gitea",
+		Events: []string{"push"},
+		Config: map[string]string{
+			"url":          "https://example.com/webhook",
+			"content_type": "json",
+		},
+		Active: true,
+	}
+
+	if err := setRepositoryWebhookData(hook, d); err != nil {
+		t.Fatalf("setRepositoryWebhookData failed: %v", err)
+	}
+
+	// Verify top-level fields are set
+	if got := d.Get(repoWebhookUrl).(string); got != "https://example.com/webhook" {
+		t.Fatalf("expected url https://example.com/webhook, got %q", got)
+	}
+
+	// Verify config map is NOT populated in state when unset in HCL (prevents constant drift against null HCL config)
+	if rawConfig, ok := d.GetOk(repoWebhookConfig); ok && len(rawConfig.(map[string]interface{})) > 0 {
+		t.Fatalf("expected config map to remain nil/empty when unset in HCL, got %#v", rawConfig)
+	}
+}
+
+func TestSetRepositoryWebhookDataConfigPreservedWhenSetInHCL(t *testing.T) {
+	d := schema.TestResourceDataRaw(t, resourceGiteaRepositoryWebhook().Schema, map[string]interface{}{
+		"username": "owner",
+		"name":     "repo",
+		"type":     "gitea",
+		"config": map[string]interface{}{
+			"url":          "https://example.com/webhook",
+			"content_type": "json",
+			"secret":       "my-secret-token",
+			"custom_key":   "custom_value",
+		},
+		"events": []interface{}{"push"},
+	})
+
+	// Gitea API returns empty string for secret
+	hook := &gitea.Hook{
+		ID:     1,
+		Type:   "gitea",
+		Events: []string{"push"},
+		Config: map[string]string{
+			"url":          "https://example.com/webhook",
+			"content_type": "json",
+			"secret":       "",
+			"custom_key":   "custom_value",
+		},
+		Active: true,
+	}
+
+	if err := setRepositoryWebhookData(hook, d); err != nil {
+		t.Fatalf("setRepositoryWebhookData failed: %v", err)
+	}
+
+	rawConfig := d.Get(repoWebhookConfig).(map[string]interface{})
+	if got := rawConfig["secret"].(string); got != "my-secret-token" {
+		t.Fatalf("expected secret 'my-secret-token' preserved in config map, got %q", got)
+	}
+	if got := rawConfig["custom_key"].(string); got != "custom_value" {
+		t.Fatalf("expected custom_key 'custom_value' in config map, got %q", got)
+	}
 }
 
 func TestBuildCreateTeamOptionsWithUnitsMap(t *testing.T) {

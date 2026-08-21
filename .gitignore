@@ -4,3 +4,4 @@ dist/
 tests/terraform.tfvars
 tests/.terraform
 tests/.terraform.lock.hcl
+terraform-provider-gitea

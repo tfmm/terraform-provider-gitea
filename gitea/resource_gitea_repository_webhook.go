@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -107,11 +108,7 @@ func resourceRepositoryWebhookCreate(d *schema.ResourceData, meta interface{}) (
 	repo := d.Get(repoWebhookName).(string)
 
 	config := buildWebhookConfigMap(d)
-
-	events := make([]string, 0)
-	for _, element := range d.Get(repoWebhookEvents).([]interface{}) {
-		events = append(events, element.(string))
-	}
+	events := extractEvents(d)
 
 	hookOption := gitea.CreateHookOption{
 		Type:                gitea.HookType(d.Get(repoWebhookType).(string)),
@@ -143,12 +140,7 @@ func resourceRepositoryWebhookUpdate(d *schema.ResourceData, meta interface{}) (
 	}
 
 	config := buildWebhookConfigMap(d)
-
-	events := make([]string, 0)
-	for _, element := range d.Get(repoWebhookEvents).([]interface{}) {
-		events = append(events, element.(string))
-	}
-
+	events := extractEvents(d)
 	active := d.Get(repoWebhookActive).(bool)
 
 	hookOption := gitea.EditHookOption{
@@ -192,6 +184,46 @@ func resourceRepositoryWebhookDelete(d *schema.ResourceData, meta interface{}) (
 	return
 }
 
+func extractEvents(d *schema.ResourceData) []string {
+	eventsMap := make(map[string]bool)
+
+	if raw, ok := d.GetOk(repoWebhookEvents); ok {
+		switch v := raw.(type) {
+		case *schema.Set:
+			for _, element := range v.List() {
+				if str, ok := element.(string); ok {
+					eventsMap[str] = true
+				}
+			}
+		case []interface{}:
+			for _, element := range v {
+				if str, ok := element.(string); ok {
+					eventsMap[str] = true
+				}
+			}
+		}
+	}
+
+	rawConfig := d.GetRawConfig()
+	if rawConfig.IsKnown() && !rawConfig.IsNull() {
+		if eventsVal, ok := rawConfig.AsValueMap()["events"]; ok && eventsVal.IsKnown() && !eventsVal.IsNull() {
+			if eventsVal.Type().IsSetType() || eventsVal.Type().IsListType() || eventsVal.Type().IsTupleType() {
+				for _, elem := range eventsVal.AsValueSlice() {
+					if elem.IsKnown() && !elem.IsNull() && elem.Type() == cty.String {
+						eventsMap[elem.AsString()] = true
+					}
+				}
+			}
+		}
+	}
+
+	events := make([]string, 0, len(eventsMap))
+	for str := range eventsMap {
+		events = append(events, str)
+	}
+	return events
+}
+
 func setRepositoryWebhookData(hook *gitea.Hook, d *schema.ResourceData) (err error) {
 	d.SetId(strconv.FormatInt(hook.ID, 10))
 
@@ -209,10 +241,25 @@ func setRepositoryWebhookData(hook *gitea.Hook, d *schema.ResourceData) (err err
 		d.Set(repoWebhookSecret, secret)
 	}
 
-	d.Set(repoWebhookEvents, stringSliceToInterfaceSlice(hook.Events))
+	// Merge hook.Events from API with existing events in state/HCL to prevent drift
+	// from Gitea server-side event filtering/omission.
+	existingEvents := extractEvents(d)
+	apiEvents := make(map[string]bool)
+	for _, e := range hook.Events {
+		apiEvents[e] = true
+	}
+
+	mergedEvents := append([]string{}, hook.Events...)
+	for _, e := range existingEvents {
+		if !apiEvents[e] {
+			mergedEvents = append(mergedEvents, e)
+		}
+	}
+
+	d.Set(repoWebhookEvents, mergedEvents)
 	d.Set(repoWebhookBranchFilter, hook.BranchFilter)
 	d.Set(repoWebhookActive, hook.Active)
-	d.Set(repoWebhookCreatedAt, hook.Created)
+	d.Set(repoWebhookCreatedAt, hook.Created.Format("2006-01-02T15:04:05Z07:00"))
 	d.Set(repoWebhookAuthorizationHeader, hook.AuthorizationHeader)
 
 	if v := hookConfigValue(hook, "http_method"); v != "" {
@@ -231,11 +278,72 @@ func setRepositoryWebhookData(hook *gitea.Hook, d *schema.ResourceData) (err err
 		d.Set(repoWebhookColor, v)
 	}
 
-	if hook.Config != nil {
-		d.Set(repoWebhookConfig, hook.Config)
+	if isConfigConfiguredInHCL(d) {
+		rawConfig := d.Get(repoWebhookConfig)
+		userConfig := rawConfig.(map[string]interface{})
+		newConfigMap := make(map[string]string)
+
+		if hook.Config != nil {
+			for k, v := range hook.Config {
+				if v != "" {
+					newConfigMap[k] = v
+				} else if existingVal, exists := userConfig[k]; exists {
+					if strVal, isStr := existingVal.(string); isStr && strVal != "" {
+						newConfigMap[k] = strVal
+					}
+				}
+			}
+		}
+
+		for k, v := range userConfig {
+			if _, exists := newConfigMap[k]; !exists {
+				if strVal, isStr := v.(string); isStr && strVal != "" {
+					newConfigMap[k] = strVal
+				}
+			}
+		}
+
+		d.Set(repoWebhookConfig, newConfigMap)
+	} else {
+		d.Set(repoWebhookConfig, nil)
 	}
 
 	return
+}
+
+func isConfigConfiguredInHCL(d *schema.ResourceData) bool {
+	rawConfig := d.GetRawConfig()
+	if rawConfig.IsKnown() && !rawConfig.IsNull() {
+		configVal, ok := rawConfig.AsValueMap()["config"]
+		if ok && configVal.IsKnown() && !configVal.IsNull() {
+			return configVal.LengthInt() > 0
+		}
+		return false
+	}
+
+	// Fallback when rawConfig is NullVal (during Read or unit tests):
+	// If config map in state contains keys that are NOT top-level schema attributes,
+	// then config was explicitly configured in HCL.
+	if rawConfigMap, ok := d.GetOk(repoWebhookConfig); ok {
+		if m, isMap := rawConfigMap.(map[string]interface{}); isMap && len(m) > 0 {
+			topLevelKeys := map[string]bool{
+				"url":          true,
+				"content_type": true,
+				"secret":       true,
+				"http_method":  true,
+				"channel":      true,
+				"username":     true,
+				"icon_url":     true,
+				"color":        true,
+			}
+			for k := range m {
+				if !topLevelKeys[k] {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 func hookConfigValue(hook *gitea.Hook, key string) string {
@@ -312,12 +420,13 @@ func resourceGiteaRepositoryWebhook() *schema.Resource {
 				Description: "Webhook authorization header",
 			},
 			"events": {
-				Type: schema.TypeList,
+				Type: schema.TypeSet,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Required:    true,
-				Description: "A list of events that will trigger the webhook, e.g. `[\"push\"]`",
+				Required:         true,
+				DiffSuppressFunc: webhookEventsDiffSuppressFunc,
+				Description:      "A list of events that will trigger the webhook, e.g. `[\"push\"]`",
 			},
 			"branch_filter": {
 				Type:        schema.TypeString,
@@ -362,12 +471,65 @@ func resourceGiteaRepositoryWebhook() *schema.Resource {
 				Description: "HTTP method used for the webhook",
 			},
 			"config": {
-				Type:        schema.TypeMap,
-				Optional:    true,
-				Elem:        &schema.Schema{Type: schema.TypeString},
-				Description: "Additional key-value configuration options for webhooks",
+				Type:             schema.TypeMap,
+				Optional:         true,
+				Elem:             &schema.Schema{Type: schema.TypeString},
+				DiffSuppressFunc: webhookConfigDiffSuppressFunc,
+				Description:      "Additional key-value configuration options for webhooks",
 			},
 		},
 		Description: "This resource allows you to create and manage webhooks for repositories.",
 	}
+}
+
+func webhookEventsDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	wType := strings.ToLower(d.Get("type").(string))
+
+	if wType == "slack" {
+		slackSupportedEvents := map[string]bool{
+			"push":                        true,
+			"issues":                      true,
+			"issue_assign":                true,
+			"issue_label":                 true,
+			"issue_milestone":             true,
+			"issue_comment":               true,
+			"pull_request":                true,
+			"pull_request_assign":         true,
+			"pull_request_label":          true,
+			"pull_request_milestone":      true,
+			"pull_request_comment":        true,
+			"pull_request_review":         true,
+			"pull_request_sync":           true,
+			"pull_request_review_request": true,
+		}
+
+		if old == "" && new != "" && !slackSupportedEvents[new] {
+			return true
+		}
+	}
+
+	return false
+}
+
+func webhookConfigDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
+	key := strings.TrimPrefix(k, "config.")
+
+	if old != "" && new == "" {
+		topLevelKeys := map[string]string{
+			"url":          repoWebhookUrl,
+			"content_type": repoWebhookContentType,
+			"secret":       repoWebhookSecret,
+			"http_method":  repoWebhookHttpMethod,
+			"channel":      repoWebhookChannel,
+			"username":     repoWebhookSlackUsername,
+			"icon_url":     repoWebhookIconUrl,
+			"color":        repoWebhookColor,
+		}
+		if topField, isTop := topLevelKeys[key]; isTop {
+			if v, ok := d.GetOk(topField); ok && v.(string) != "" {
+				return true
+			}
+		}
+	}
+	return false
 }
