@@ -39,7 +39,7 @@ Example linux `~/.terraformrc` file:
 provider_installation {
 
   dev_overrides {
-      "go-gitea/gitea" = "/home/<username>/go/bin"
+      "tfmm/gitea" = "/home/<username>/go/bin"
   }
 
   # For all other providers, install them directly from their origin provider

@@ -1,7 +1,8 @@
 terraform {
   required_providers {
     gitea = {
-      source = "go-gitea/gitea"
+      source  = "tfmm/gitea"
+      version = ">= 0.9.0"
     }
   }
 }

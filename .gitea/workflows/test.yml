@@ -25,7 +25,7 @@ jobs:
         cat <<EOF > $HOME/.terraformrc
         provider_installation {
           dev_overrides {
-            "go-gitea/gitea" = "${{ github.workspace }}"
+            "tfmm/gitea" = "${{ github.workspace }}"
           }
           direct {}
         }

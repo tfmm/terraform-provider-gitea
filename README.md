@@ -12,8 +12,8 @@ This is not a 1.0 release, so usage is subject to change!
 terraform {
   required_providers {
     gitea = {
-      source = "go-gitea/gitea"
-      version = "0.6.0"
+      source  = "tfmm/gitea"
+      version = ">= 0.9.0"
     }
   }
 }
