@@ -2,7 +2,9 @@
 
 Terraform Gitea Provider
 
-This repo is mirrored from https://gitea.com/gitea/terraform-provider-gitea please send all issues and pull requests there.
+This repo is forked from https://gitea.com/gitea/terraform-provider-gitea.
+
+Please send all issues to this repo, PRs are handled outside github.
 
 ## Usage
 
@@ -48,7 +50,7 @@ resource "gitea_repository" "mirror" {
   name                         = "terraform-provider-gitea-mirror"
   description                  = "Mirror of Terraform Provider"
   mirror                       = true
-  migration_clone_addresse     = "https://git.uploadfilter24.eu/lerentis/terraform-provider-gitea.git"
+  migration_clone_address     = "https://git.uploadfilter24.eu/lerentis/terraform-provider-gitea.git"
   migration_service            = "gitea"
   migration_service_auth_token = var.gitea_mirror_token
 }
@@ -71,3 +73,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## History
 
 This codebase was created at https://gitea.com/gitea/terraform-provider-gitea, was forked by @lerentis, and then their changes were merged back into the original repo. Thank you to everyone who contributed!
+
+I have now forked again to expedite getting some changes added into the provider. 
