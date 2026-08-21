@@ -50,7 +50,7 @@ func TestSetRepositoryWebhookDataUsesHookFields(t *testing.T) {
 	if got := d.Get(repoWebhookContentType).(string); got != "json" {
 		t.Fatalf("expected content_type json, got %q", got)
 	}
-	if got := resourceDataStringList(d, repoWebhookEvents); !reflect.DeepEqual(got, []string{"old", "pull_request", "push"}) {
+	if got := resourceDataStringList(d, repoWebhookEvents); !reflect.DeepEqual(got, []string{"pull_request", "push"}) {
 		t.Fatalf("expected events from hook, got %#v", got)
 	}
 	if got := d.Get(repoWebhookBranchFilter).(string); got != "feature/*" {

@@ -241,22 +241,7 @@ func setRepositoryWebhookData(hook *gitea.Hook, d *schema.ResourceData) (err err
 		d.Set(repoWebhookSecret, secret)
 	}
 
-	// Merge hook.Events from API with existing events in state/HCL to prevent drift
-	// from Gitea server-side event filtering/omission.
-	existingEvents := extractEvents(d)
-	apiEvents := make(map[string]bool)
-	for _, e := range hook.Events {
-		apiEvents[e] = true
-	}
-
-	mergedEvents := append([]string{}, hook.Events...)
-	for _, e := range existingEvents {
-		if !apiEvents[e] {
-			mergedEvents = append(mergedEvents, e)
-		}
-	}
-
-	d.Set(repoWebhookEvents, mergedEvents)
+	d.Set(repoWebhookEvents, hook.Events)
 	d.Set(repoWebhookBranchFilter, hook.BranchFilter)
 	d.Set(repoWebhookActive, hook.Active)
 	d.Set(repoWebhookCreatedAt, hook.Created.Format("2006-01-02T15:04:05Z07:00"))
@@ -424,9 +409,8 @@ func resourceGiteaRepositoryWebhook() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Required:         true,
-				DiffSuppressFunc: webhookEventsDiffSuppressFunc,
-				Description:      "A list of events that will trigger the webhook, e.g. `[\"push\"]`",
+				Required:    true,
+				Description: "A list of events that will trigger the webhook, e.g. `[\"push\"]`",
 			},
 			"branch_filter": {
 				Type:        schema.TypeString,
@@ -482,34 +466,6 @@ func resourceGiteaRepositoryWebhook() *schema.Resource {
 	}
 }
 
-func webhookEventsDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
-	wType := strings.ToLower(d.Get("type").(string))
-
-	if wType == "slack" {
-		slackSupportedEvents := map[string]bool{
-			"push":                        true,
-			"issues":                      true,
-			"issue_assign":                true,
-			"issue_label":                 true,
-			"issue_milestone":             true,
-			"issue_comment":               true,
-			"pull_request":                true,
-			"pull_request_assign":         true,
-			"pull_request_label":          true,
-			"pull_request_milestone":      true,
-			"pull_request_comment":        true,
-			"pull_request_review":         true,
-			"pull_request_sync":           true,
-			"pull_request_review_request": true,
-		}
-
-		if old == "" && new != "" && !slackSupportedEvents[new] {
-			return true
-		}
-	}
-
-	return false
-}
 
 func webhookConfigDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
 	key := strings.TrimPrefix(k, "config.")
