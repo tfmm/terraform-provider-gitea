@@ -26,8 +26,8 @@ jobs:
         uses: crazy-max/ghaction-import-gpg@v6
         id: import_gpg
         with:
-          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-          passphrase: ${{ secrets.PASSPHRASE }}
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY || secrets.GPG_KEY }}
+          passphrase: ${{ secrets.PASSPHRASE || secrets.GPG_PASSPHRASE }}
       - name: Verify GPG Key Import
         run: |
           echo "Imported GPG Fingerprint: '${GPG_FINGERPRINT}'"
