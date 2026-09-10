@@ -54,6 +54,7 @@ func dataSourceGiteaTeam() *schema.Resource {
 				Description: "Map of repository units to their permissions",
 			},
 		},
+		Description: "Use this data source to retrieve details of a Gitea team.",
 	}
 }
 

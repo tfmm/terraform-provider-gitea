@@ -54,6 +54,7 @@ func dataSourceGiteaTeams() *schema.Resource {
 				},
 			},
 		},
+		Description: "Use this data source to list teams within a Gitea organization.",
 	}
 }
 

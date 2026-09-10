@@ -51,6 +51,7 @@ func dataSourceGiteaUser() *schema.Resource {
 				Computed: true,
 			},
 		},
+		Description: "Use this data source to retrieve details of a Gitea user.",
 	}
 }
 
