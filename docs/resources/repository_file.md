@@ -88,17 +88,17 @@ resource "gitea_repository_file" "example_base64" {
 
 ## Import
 
-Using `import` blocks in Terraform v1.5.0 and later:
+Import is supported using the following syntax:
 
-```terraform
-import {
-  to = gitea_repository_file.example
-  id = "<username>/<repo>/<branch>/<file_path>"
-}
-```
-
-Using `terraform import` in Terraform v1.4.0 and earlier:
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-terraform import gitea_repository_file.example <username>/<repo>/<branch>/<file_path>
+# Using `import` blocks in Terraform v1.5.0 and later:
+# import {
+#   to = gitea_repository_file.example
+#   id = "<owner>/<repo>/<filepath>"
+# }
+
+# Using `terraform import` in Terraform v1.4.0 and earlier:
+terraform import gitea_repository_file.example <owner>/<repo>/<filepath>
 ```

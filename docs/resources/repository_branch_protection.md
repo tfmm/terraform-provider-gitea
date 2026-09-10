@@ -14,11 +14,10 @@ This resource allows you to create and manage branch protections for repositorie
 
 ```terraform
 resource "gitea_repository_branch_protection" "example" {
-  username           = "my-org"
-  name               = "my-repo"
-  rule_name          = "main"
-  required_approvals = 1
-  enable_push        = false
+  username    = "my-org"
+  repository  = "my-repo"
+  rule_name   = "main"
+  enable_push = false
 }
 ```
 
@@ -39,6 +38,7 @@ resource "gitea_repository_branch_protection" "example" {
 - `approval_whitelist_users` (List of String) Only reviews from allowlisted users will count to the required
 								approvals. Without approval allowlist, reviews from anyone with
 								write access count to the required approvals.
+- `block_admin_merge_override` (Boolean) Prevent admins from bypassing branch protection rules when merging.
 - `block_merge_on_official_review_requests` (Boolean) Merging will not be possible when it has official
 								review requests, even if there are enough approvals.
 - `block_merge_on_outdated_branch` (Boolean) Merging will not be possible when head branch is behind base branch.
@@ -79,17 +79,17 @@ resource "gitea_repository_branch_protection" "example" {
 
 ## Import
 
-Using `import` blocks in Terraform v1.5.0 and later:
+Import is supported using the following syntax:
 
-```terraform
-import {
-  to = gitea_repository_branch_protection.example
-  id = "<username>/<repo>/<rule_name>"
-}
-```
-
-Using `terraform import` in Terraform v1.4.0 and earlier:
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-terraform import gitea_repository_branch_protection.example <username>/<repo>/<rule_name>
+# Using `import` blocks in Terraform v1.5.0 and later:
+# import {
+#   to = gitea_repository_branch_protection.example
+#   id = "<username>/<repo>/<branch_name>"
+# }
+
+# Using `terraform import` in Terraform v1.4.0 and earlier:
+terraform import gitea_repository_branch_protection.example <username>/<repo>/<branch_name>
 ```

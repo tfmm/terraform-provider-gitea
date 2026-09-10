@@ -20,14 +20,14 @@ resource "gitea_user" "example" {
   email      = "repo_example_user@user.dev"
 }
 
-resource "gitea_repository" "test_repository" {
+resource "gitea_repository" "test-repository" {
   name     = "test-repository"
   username = gitea_user.example.username
 }
 
-resource "gitea_repository_branch" "test_branch" {
+resource "gitea_repository_branch" "test-branch" {
   name       = "feat/testing-branch"
-  repository = gitea_repository.test_repository.id
+  repository = gitea_repository.test-repo.id
 }
 ```
 
@@ -45,17 +45,17 @@ resource "gitea_repository_branch" "test_branch" {
 
 ## Import
 
-Using `import` blocks in Terraform v1.5.0 and later:
+Import is supported using the following syntax:
 
-```terraform
-import {
-  to = gitea_repository_branch.example
-  id = "<repo_id>/<branch_name>"
-}
-```
-
-Using `terraform import` in Terraform v1.4.0 and earlier:
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-terraform import gitea_repository_branch.example <repo_id>/<branch_name>
+# Using `import` blocks in Terraform v1.5.0 and later:
+# import {
+#   to = gitea_repository_branch.example
+#   id = "<owner>/<repo>/<branch_name>"
+# }
+
+# Using `terraform import` in Terraform v1.4.0 and earlier:
+terraform import gitea_repository_branch.example <owner>/<repo>/<branch_name>
 ```

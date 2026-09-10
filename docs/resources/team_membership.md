@@ -53,17 +53,17 @@ resource "gitea_team_membership" "example_team_memberships" {
 
 ## Import
 
-Using `import` blocks in Terraform v1.5.0 and later:
+Import is supported using the following syntax:
 
-```terraform
-import {
-  to = gitea_team_membership.example
-  id = "<team_id>/<username>"
-}
-```
-
-Using `terraform import` in Terraform v1.4.0 and earlier:
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
+# Using `import` blocks in Terraform v1.5.0 and later:
+# import {
+#   to = gitea_team_membership.example
+#   id = "<team_id>/<username>"
+# }
+
+# Using `terraform import` in Terraform v1.4.0 and earlier:
 terraform import gitea_team_membership.example <team_id>/<username>
 ```

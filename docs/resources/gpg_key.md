@@ -14,7 +14,7 @@ description: |-
 
 ```terraform
 resource "gitea_gpg_key" "example" {
-  armored_public_key = file("${path.module}/gpg_key.pub")
+  key = "-----BEGIN PGP PUBLIC KEY BLOCK-----\n..."
 }
 ```
 
@@ -32,17 +32,17 @@ resource "gitea_gpg_key" "example" {
 
 ## Import
 
-Using `import` blocks in Terraform v1.5.0 and later:
+Import is supported using the following syntax:
 
-```terraform
-import {
-  to = gitea_gpg_key.example
-  id = "<id>"
-}
-```
-
-Using `terraform import` in Terraform v1.4.0 and earlier:
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-terraform import gitea_gpg_key.example <id>
+# Using `import` blocks in Terraform v1.5.0 and later:
+# import {
+#   to = gitea_gpg_key.example
+#   id = "<key_id>"
+# }
+
+# Using `terraform import` in Terraform v1.4.0 and earlier:
+terraform import gitea_gpg_key.example <key_id>
 ```

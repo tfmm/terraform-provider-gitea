@@ -3,21 +3,21 @@
 page_title: "gitea_repository_actions_variable Resource - terraform-provider-gitea"
 subcategory: ""
 description: |-
-  gitea_repository_actions_variable manages a repository actions variable.
+  
 ---
 
 # gitea_repository_actions_variable (Resource)
 
-`gitea_repository_actions_variable` manages a repository actions variable.
+
 
 ## Example Usage
 
 ```terraform
 resource "gitea_repository_actions_variable" "example" {
-  repository_owner = "my-org"
-  repository       = "my-repo"
-  variable_name    = "BUILD_ENV"
-  value            = "staging"
+  owner         = "my-org"
+  repository    = "my-repo"
+  variable_name = "MY_VAR"
+  value         = "my_value"
 }
 ```
 
@@ -37,17 +37,17 @@ resource "gitea_repository_actions_variable" "example" {
 
 ## Import
 
-Using `import` blocks in Terraform v1.5.0 and later:
+Import is supported using the following syntax:
 
-```terraform
-import {
-  to = gitea_repository_actions_variable.example
-  id = "<repository_owner>:<repository>:<variable_name>"
-}
-```
-
-Using `terraform import` in Terraform v1.4.0 and earlier:
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-terraform import gitea_repository_actions_variable.example <repository_owner>:<repository>:<variable_name>
+# Using `import` blocks in Terraform v1.5.0 and later:
+# import {
+#   to = gitea_repository_actions_variable.example
+#   id = "<owner>/<repo>/<variable_name>"
+# }
+
+# Using `terraform import` in Terraform v1.4.0 and earlier:
+terraform import gitea_repository_actions_variable.example <owner>/<repo>/<variable_name>
 ```

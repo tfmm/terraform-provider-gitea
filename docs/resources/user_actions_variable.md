@@ -17,9 +17,8 @@ Import expects the resource ID in the form `variable_name`.
 
 ```terraform
 resource "gitea_user_actions_variable" "example" {
-  variable_name = "GLOBAL_ENV"
-  value         = "production"
-  description   = "User-scoped Actions variable"
+  variable_name = "MY_USER_VAR"
+  value         = "my_value"
 }
 ```
 
@@ -41,17 +40,17 @@ resource "gitea_user_actions_variable" "example" {
 
 ## Import
 
-Using `import` blocks in Terraform v1.5.0 and later:
+Import is supported using the following syntax:
 
-```terraform
-import {
-  to = gitea_user_actions_variable.example
-  id = "<variable_name>"
-}
-```
-
-Using `terraform import` in Terraform v1.4.0 and earlier:
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
+# Using `import` blocks in Terraform v1.5.0 and later:
+# import {
+#   to = gitea_user_actions_variable.example
+#   id = "<variable_name>"
+# }
+
+# Using `terraform import` in Terraform v1.4.0 and earlier:
 terraform import gitea_user_actions_variable.example <variable_name>
 ```

@@ -12,31 +12,15 @@ This resource allows you to create and manage webhooks for repositories.
 
 ## Example Usage
 
-### Standard Gitea Webhook
 ```terraform
-resource "gitea_repository_webhook" "gitea_hook" {
+resource "gitea_repository_webhook" "example" {
   username     = "my-org"
   name         = "my-repo"
   type         = "gitea"
   url          = "https://example.com/webhook"
   content_type = "json"
-  events       = ["push", "pull_request"]
+  events       = ["push"]
   active       = true
-}
-```
-
-### Slack Webhook
-```terraform
-resource "gitea_repository_webhook" "slack_hook" {
-  username       = "my-org"
-  name           = "my-repo"
-  type           = "slack"
-  url            = "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX"
-  channel        = "#general"
-  slack_username = "gitea-bot"
-  color          = "#00ff00"
-  events         = ["push", "issues"]
-  active         = true
 }
 ```
 
@@ -45,16 +29,16 @@ resource "gitea_repository_webhook" "slack_hook" {
 
 ### Required
 
-- `events` (List of String) A list of events that will trigger the webhook, e.g. `["push"]`
+- `events` (Set of String) A list of events that will trigger the webhook, e.g. `["push"]`
 - `name` (String) Repository name
 - `type` (String) Webhook type, e.g. `gitea`, `gogs`, `slack`, `discord`, `dingtalk`, `msteams`, `telegram`, `feishu`, `matrix`, `wechatwork`, `packagist`
 - `username` (String) User name or organization name
 
 ### Optional
 
-- `active` (Boolean) Set webhook to active, e.g. `true` (defaults to `true`)
+- `active` (Boolean) Set webhook to active, e.g. `true`
 - `authorization_header` (String, Sensitive) Webhook authorization header
-- `branch_filter` (String) Set branch filter on the webhook, e.g. `"*"` (defaults to `*`)
+- `branch_filter` (String) Set branch filter on the webhook, e.g. `"*"`
 - `channel` (String) Channel name for Slack webhooks (e.g. `#general` or `@username`)
 - `color` (String) Hex color code for Slack webhooks (e.g. `#ff0000`)
 - `config` (Map of String) Additional key-value configuration options for webhooks
@@ -72,17 +56,17 @@ resource "gitea_repository_webhook" "slack_hook" {
 
 ## Import
 
-Using `import` blocks in Terraform v1.5.0 and later:
+Import is supported using the following syntax:
 
-```terraform
-import {
-  to = gitea_repository_webhook.example
-  id = "<username>/<repo>/<webhook_id>"
-}
-```
-
-Using `terraform import` in Terraform v1.4.0 and earlier:
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
+# Using `import` blocks in Terraform v1.5.0 and later:
+# import {
+#   to = gitea_repository_webhook.example
+#   id = "<username>/<repo>/<webhook_id>"
+# }
+
+# Using `terraform import` in Terraform v1.4.0 and earlier:
 terraform import gitea_repository_webhook.example <username>/<repo>/<webhook_id>
 ```

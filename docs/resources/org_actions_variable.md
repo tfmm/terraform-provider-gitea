@@ -16,15 +16,10 @@ Import expects the resource ID in the form `org:variable_name`.
 ## Example Usage
 
 ```terraform
-resource "gitea_org" "example" {
-  name = "my-org"
-}
-
 resource "gitea_org_actions_variable" "example" {
-  org           = gitea_org.example.name
-  variable_name = "ENVIRONMENT"
-  value         = "production"
-  description   = "Target environment for actions workflows"
+  org           = "my-org"
+  variable_name = "MY_ORG_VAR"
+  value         = "my_value"
 }
 ```
 
@@ -47,17 +42,17 @@ resource "gitea_org_actions_variable" "example" {
 
 ## Import
 
-Using `import` blocks in Terraform v1.5.0 and later:
+Import is supported using the following syntax:
 
-```terraform
-import {
-  to = gitea_org_actions_variable.example
-  id = "<org>:<variable_name>"
-}
-```
-
-Using `terraform import` in Terraform v1.4.0 and earlier:
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-terraform import gitea_org_actions_variable.example <org>:<variable_name>
+# Using `import` blocks in Terraform v1.5.0 and later:
+# import {
+#   to = gitea_org_actions_variable.example
+#   id = "<org>/<variable_name>"
+# }
+
+# Using `terraform import` in Terraform v1.4.0 and earlier:
+terraform import gitea_org_actions_variable.example <org>/<variable_name>
 ```

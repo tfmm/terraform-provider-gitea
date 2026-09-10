@@ -62,19 +62,17 @@ resource "gitea_user" "test" {
 
 ## Import
 
-Using `import` blocks in Terraform v1.5.0 and later:
+Import is supported using the following syntax:
 
-```terraform
-import {
-  to = gitea_user.example
-  id = "<id>"
-}
-```
-
-Using `terraform import` in Terraform v1.4.0 and earlier:
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-terraform import gitea_user.example <id>
-```
+# Using `import` blocks in Terraform v1.5.0 and later:
+# import {
+#   to = gitea_user.example
+#   id = "<user_id_or_username>"
+# }
 
-Note: `password` must remain configured in HCL as Gitea API does not return passwords.
+# Using `terraform import` in Terraform v1.4.0 and earlier:
+terraform import gitea_user.example <user_id_or_username>
+```

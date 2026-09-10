@@ -54,4 +54,17 @@ resource "gitea_git_hook" "org_repo_post_receive" {
 
 ## Import
 
-Import is not supported for this resource.
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+# Using `import` blocks in Terraform v1.5.0 and later:
+# import {
+#   to = gitea_git_hook.example
+#   id = "<owner>/<repo>/<hook_name>"
+# }
+
+# Using `terraform import` in Terraform v1.4.0 and earlier:
+terraform import gitea_git_hook.example <owner>/<repo>/<hook_name>
+```
