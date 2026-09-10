@@ -31,3 +31,42 @@ func testAccPreCheck(t *testing.T) {
 		t.Fatal("GITEA_TOKEN must be set for acceptance tests")
 	}
 }
+
+func TestNewResourcesRegisteredInProvider(t *testing.T) {
+	p := Provider()
+	expectedResources := []string{
+		"gitea_org_webhook",
+		"gitea_label",
+		"gitea_milestone",
+		"gitea_release",
+		"gitea_repository_tag",
+		"gitea_repository_topics",
+	}
+
+	for _, r := range expectedResources {
+		if _, ok := p.ResourcesMap[r]; !ok {
+			t.Errorf("resource %s is not registered in Provider", r)
+		}
+	}
+
+	expectedDataSources := []string{
+		"gitea_org_webhook",
+		"gitea_org_webhooks",
+		"gitea_label",
+		"gitea_labels",
+		"gitea_milestone",
+		"gitea_milestones",
+		"gitea_release",
+		"gitea_releases",
+		"gitea_repository_tag",
+		"gitea_repository_tags",
+		"gitea_repository_topics",
+	}
+
+	for _, ds := range expectedDataSources {
+		if _, ok := p.DataSourcesMap[ds]; !ok {
+			t.Errorf("data source %s is not registered in Provider", ds)
+		}
+	}
+}
+
