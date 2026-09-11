@@ -15,8 +15,8 @@ Lists all versions of a package.
 ```terraform
 data "gitea_package_versions" "example" {
   owner        = "my-org"
-  package_type = "generic"
-  name         = "my-package"
+  package_type = "npm"
+  package_name = "my-package"
 }
 ```
 

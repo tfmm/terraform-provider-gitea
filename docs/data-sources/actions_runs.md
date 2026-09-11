@@ -14,9 +14,8 @@ Lists Actions workflow runs for the selected scope.
 
 ```terraform
 data "gitea_actions_runs" "example" {
-  scope            = "repo"
-  repository_owner = "my-org"
-  repository       = "my-repo"
+  owner = "my-org"
+  repo  = "my-repo"
 }
 ```
 

@@ -14,9 +14,9 @@ Lists issue attachments.
 
 ```terraform
 data "gitea_issue_attachments" "example" {
-  repository_owner = "my-org"
-  repository       = "my-repo"
-  issue_index      = 1
+  owner       = "my-org"
+  repo        = "my-repo"
+  issue_index = 1
 }
 ```
 

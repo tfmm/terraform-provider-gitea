@@ -19,9 +19,8 @@ Import is intentionally unsupported.
 
 ```terraform
 resource "gitea_user_actions_secret" "example" {
-  secret_name  = "PERSONAL_API_KEY"
-  secret_value = "supersecretkey"
-  description  = "User-scoped Actions secret"
+  secret_name = "MY_USER_SECRET"
+  value       = "secret_value"
 }
 ```
 
@@ -43,4 +42,17 @@ resource "gitea_user_actions_secret" "example" {
 
 ## Import
 
-Import is not supported for this resource (write-only resource).
+Import is supported using the following syntax:
+
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
+```shell
+# Using `import` blocks in Terraform v1.5.0 and later:
+# import {
+#   to = gitea_user_actions_secret.example
+#   id = "<secret_name>"
+# }
+
+# Using `terraform import` in Terraform v1.4.0 and earlier:
+terraform import gitea_user_actions_secret.example <secret_name>
+```

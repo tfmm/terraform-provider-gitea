@@ -14,9 +14,9 @@ Lists issue comment attachments.
 
 ```terraform
 data "gitea_issue_comment_attachments" "example" {
-  repository_owner = "my-org"
-  repository       = "my-repo"
-  comment_id       = 42
+  owner      = "my-org"
+  repo       = "my-repo"
+  comment_id = 123
 }
 ```
 

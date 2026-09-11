@@ -14,8 +14,8 @@ Lists Actions runners for the selected scope.
 
 ```terraform
 data "gitea_actions_runners" "example" {
-  scope = "org"
-  org   = "my-org"
+  owner = "my-org"
+  repo  = "my-repo"
 }
 ```
 

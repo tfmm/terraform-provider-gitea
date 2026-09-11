@@ -14,9 +14,9 @@ Lists Actions jobs for the selected scope.
 
 ```terraform
 data "gitea_actions_jobs" "example" {
-  scope            = "repo"
-  repository_owner = "my-org"
-  repository       = "my-repo"
+  owner  = "my-org"
+  repo   = "my-repo"
+  run_id = 123
 }
 ```
 

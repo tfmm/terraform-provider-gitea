@@ -14,8 +14,8 @@ Lists repository Actions artifacts.
 
 ```terraform
 data "gitea_repository_actions_artifacts" "example" {
-  repository_owner = "my-org"
-  repository       = "my-repo"
+  owner = "my-org"
+  repo  = "my-repo"
 }
 ```
 

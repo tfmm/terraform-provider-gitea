@@ -11,7 +11,7 @@ import (
 
 func dataSourceGiteaOrg() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaUserRead,
+		Read: dataSourceGiteaOrgRead,
 		Schema: map[string]*schema.Schema{
 			"id": {
 				Type:     schema.TypeInt,
@@ -47,6 +47,7 @@ func dataSourceGiteaOrg() *schema.Resource {
 				Computed: true,
 			},
 		},
+		Description: "Use this data source to retrieve details of a Gitea organization.",
 	}
 }
 

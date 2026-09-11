@@ -14,8 +14,8 @@ Fetches the parsed issue configuration for a repository.
 
 ```terraform
 data "gitea_repository_issue_config" "example" {
-  repository_owner = "my-org"
-  repository       = "my-repo"
+  owner = "my-org"
+  repo  = "my-repo"
 }
 ```
 

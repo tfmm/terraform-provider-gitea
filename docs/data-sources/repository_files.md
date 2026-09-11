@@ -14,9 +14,9 @@ Fetches multiple repository files in a single request.
 
 ```terraform
 data "gitea_repository_files" "example" {
-  repository_owner = "my-org"
-  repository       = "my-repo"
-  paths            = ["README.md", "VERSION"]
+  username = "my-org"
+  name     = "my-repo"
+  ref      = "main"
 }
 ```
 

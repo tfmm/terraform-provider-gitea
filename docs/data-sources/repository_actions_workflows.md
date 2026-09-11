@@ -14,8 +14,8 @@ Lists repository Actions workflows.
 
 ```terraform
 data "gitea_repository_actions_workflows" "example" {
-  repository_owner = "my-org"
-  repository       = "my-repo"
+  owner = "my-org"
+  repo  = "my-repo"
 }
 ```
 

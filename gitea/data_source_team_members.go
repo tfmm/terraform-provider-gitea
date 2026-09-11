@@ -46,6 +46,7 @@ func dataSourceGiteaTeamMembers() *schema.Resource {
 				},
 			},
 		},
+		Description: "Use this data source to list members of a Gitea team.",
 	}
 }
 

@@ -14,9 +14,9 @@ Fetches metadata for a single repository Actions artifact.
 
 ```terraform
 data "gitea_repository_actions_artifact" "example" {
-  repository_owner = "my-org"
-  repository       = "my-repo"
-  artifact_id      = 123
+  owner       = "my-org"
+  repo        = "my-repo"
+  artifact_id = 123
 }
 ```
 

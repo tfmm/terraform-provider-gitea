@@ -17,11 +17,10 @@ Import expects the resource ID in the form `owner:repo:issue_index:attachment_id
 
 ```terraform
 resource "gitea_issue_attachment" "example" {
-  repository_owner = "my-org"
-  repository       = "my-repo"
-  issue_index      = 1
-  source_path      = "${path.module}/attachment.txt"
-  name             = "attachment.txt"
+  owner       = "my-org"
+  repo        = "my-repo"
+  issue_index = 1
+  file_path   = "path/to/file.png"
 }
 ```
 
@@ -51,17 +50,17 @@ resource "gitea_issue_attachment" "example" {
 
 ## Import
 
-Using `import` blocks in Terraform v1.5.0 and later:
+Import is supported using the following syntax:
 
-```terraform
-import {
-  to = gitea_issue_attachment.example
-  id = "<owner>:<repo>:<issue_index>:<attachment_id>"
-}
-```
-
-Using `terraform import` in Terraform v1.4.0 and earlier:
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-terraform import gitea_issue_attachment.example <owner>:<repo>:<issue_index>:<attachment_id>
+# Using `import` blocks in Terraform v1.5.0 and later:
+# import {
+#   to = gitea_issue_attachment.example
+#   id = "<owner>/<repo>/<issue_index>/<attachment_id>"
+# }
+
+# Using `terraform import` in Terraform v1.4.0 and earlier:
+terraform import gitea_issue_attachment.example <owner>/<repo>/<issue_index>/<attachment_id>
 ```

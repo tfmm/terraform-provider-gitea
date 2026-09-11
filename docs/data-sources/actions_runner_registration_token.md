@@ -14,8 +14,8 @@ Creates and returns an Actions runner registration token for the selected scope.
 
 ```terraform
 data "gitea_actions_runner_registration_token" "example" {
-  scope = "org"
-  org   = "my-org"
+  owner = "my-org"
+  repo  = "my-repo"
 }
 ```
 

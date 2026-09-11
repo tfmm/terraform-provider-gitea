@@ -14,10 +14,10 @@ Fetches a pull request by base and head branch names.
 
 ```terraform
 data "gitea_pull_request_by_base_head" "example" {
-  repository_owner = "my-org"
-  repository       = "my-repo"
-  base_ref         = "main"
-  head_ref         = "feature-branch"
+  owner = "my-org"
+  repo  = "my-repo"
+  base  = "main"
+  head  = "feature"
 }
 ```
 

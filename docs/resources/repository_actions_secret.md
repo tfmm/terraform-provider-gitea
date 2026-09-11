@@ -19,10 +19,10 @@ Because Gitea does not return secret values, `secret_value` must still be config
 
 ```terraform
 resource "gitea_repository_actions_secret" "example" {
-  repository_owner = "my-org"
-  repository       = "my-repo"
-  secret_name      = "API_KEY"
-  secret_value     = "supersecretkey"
+  owner       = "my-org"
+  repository  = "my-repo"
+  secret_name = "MY_SECRET"
+  value       = "secret_value"
 }
 ```
 
@@ -43,19 +43,17 @@ resource "gitea_repository_actions_secret" "example" {
 
 ## Import
 
-Using `import` blocks in Terraform v1.5.0 and later:
+Import is supported using the following syntax:
 
-```terraform
-import {
-  to = gitea_repository_actions_secret.example
-  id = "<repository_owner>:<repository>:<secret_name>"
-}
-```
-
-Using `terraform import` in Terraform v1.4.0 and earlier:
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-terraform import gitea_repository_actions_secret.example <repository_owner>:<repository>:<secret_name>
-```
+# Using `import` blocks in Terraform v1.5.0 and later:
+# import {
+#   to = gitea_repository_actions_secret.example
+#   id = "<owner>/<repo>/<secret_name>"
+# }
 
-Note: `secret_value` must still be configured in HCL as Gitea API does not return secret values.
+# Using `terraform import` in Terraform v1.4.0 and earlier:
+terraform import gitea_repository_actions_secret.example <owner>/<repo>/<secret_name>
+```
