@@ -148,7 +148,9 @@ func resourceGiteaOrgActionsSecret() *schema.Resource {
 		},
 		Description: "`gitea_org_actions_secret` manages an organisation-scoped Actions secret.\n\n" +
 			"Import expects the resource ID in the form `org:secret_name`.\n" +
-			"Because Gitea does not return secret values, `secret_value` must still be configured when importing.",
+			"Because Gitea does not return secret values, `secret_value` must still be configured when importing.\n\n" +
+			"WARNING:\n" +
+			"`secret_value` will be stored in the terraform state!",
 	}
 }
 
@@ -333,7 +335,9 @@ func resourceGiteaUserActionsSecret() *schema.Resource {
 		},
 		Description: "`gitea_user_actions_secret` manages a user-scoped Actions secret.\n\n" +
 			"This resource is write-only because the Gitea API does not expose a read/list endpoint for user-scoped Actions secrets.\n" +
-			"Import is intentionally unsupported.",
+			"Import is intentionally unsupported.\n\n" +
+			"WARNING:\n" +
+			"`secret_value` will be stored in the terraform state!",
 	}
 }
 

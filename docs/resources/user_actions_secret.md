@@ -6,6 +6,8 @@ description: |-
   gitea_user_actions_secret manages a user-scoped Actions secret.
   This resource is write-only because the Gitea API does not expose a read/list endpoint for user-scoped Actions secrets.
   Import is intentionally unsupported.
+  WARNING:
+  secret_value will be stored in the terraform state!
 ---
 
 # gitea_user_actions_secret (Resource)
@@ -14,6 +16,9 @@ description: |-
 
 This resource is write-only because the Gitea API does not expose a read/list endpoint for user-scoped Actions secrets.
 Import is intentionally unsupported.
+
+WARNING:
+`secret_value` will be stored in the terraform state!
 
 ## Example Usage
 
