@@ -126,7 +126,7 @@ func resourceGiteaOrgActionsSecret() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
-		Schema: map[string]*schema.Schema{
+		Schema: mergeSchemaMaps(map[string]*schema.Schema{
 			actionOrgField: {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -139,12 +139,6 @@ func resourceGiteaOrgActionsSecret() *schema.Resource {
 				ForceNew:    true,
 				Description: "The Actions secret name.",
 			},
-			"secret_value": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Sensitive:   true,
-				Description: "The Actions secret value.",
-			},
 			descriptionField: {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -155,12 +149,12 @@ func resourceGiteaOrgActionsSecret() *schema.Resource {
 				Computed:    true,
 				Description: "The Actions secret creation timestamp.",
 			},
-		},
+		}, writeOnlySecretValueSchema("The Actions secret value.")),
 		Description: "`gitea_org_actions_secret` manages an organisation-scoped Actions secret.\n\n" +
 			"Import expects the resource ID in the form `org:secret_name`.\n" +
-			"Because Gitea does not return secret values, `secret_value` must still be configured when importing.\n\n" +
+			"Because Gitea does not return secret values, `secret_value` or `secret_value_wo` must still be configured when importing.\n\n" +
 			"WARNING:\n" +
-			"`secret_value` will be stored in the terraform state!",
+			"`secret_value` will be stored in the terraform state! Use `secret_value_wo` instead to avoid that.",
 	}
 }
 
@@ -168,8 +162,12 @@ func resourceGiteaOrgActionsSecretCreate(ctx context.Context, d *schema.Resource
 	client := meta.(*gitea.Client)
 	org := strings.ToLower(d.Get(actionOrgField).(string))
 	name := d.Get("secret_name").(string)
-	_, err := client.CreateOrgActionSecret(org, name, gitea.CreateOrUpdateSecretOption{
-		Data:        d.Get("secret_value").(string),
+	value, err := resolveSecretValue(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	_, err = client.CreateOrgActionSecret(org, name, gitea.CreateOrUpdateSecretOption{
+		Data:        value,
 		Description: d.Get(descriptionField).(string),
 	})
 	if err != nil {
@@ -224,8 +222,12 @@ func resourceGiteaOrgActionsSecretUpdate(ctx context.Context, d *schema.Resource
 	client := meta.(*gitea.Client)
 	org := strings.ToLower(d.Get(actionOrgField).(string))
 	name := d.Get("secret_name").(string)
-	_, err := client.CreateOrgActionSecret(org, name, gitea.CreateOrUpdateSecretOption{
-		Data:        d.Get("secret_value").(string),
+	value, err := resolveSecretValue(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	_, err = client.CreateOrgActionSecret(org, name, gitea.CreateOrUpdateSecretOption{
+		Data:        value,
 		Description: d.Get(descriptionField).(string),
 	})
 	if err != nil {
@@ -338,38 +340,36 @@ func resourceGiteaUserActionsSecret() *schema.Resource {
 		ReadContext:   resourceGiteaUserActionsSecretRead,
 		UpdateContext: resourceGiteaUserActionsSecretUpdate,
 		DeleteContext: resourceGiteaUserActionsSecretDelete,
-		Schema: map[string]*schema.Schema{
+		Schema: mergeSchemaMaps(map[string]*schema.Schema{
 			"secret_name": {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
 				Description: "The user-scoped Actions secret name.",
 			},
-			"secret_value": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Sensitive:   true,
-				Description: "The user-scoped Actions secret value.",
-			},
 			descriptionField: {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The user-scoped Actions secret description.",
 			},
-		},
+		}, writeOnlySecretValueSchema("The user-scoped Actions secret value.")),
 		Description: "`gitea_user_actions_secret` manages a user-scoped Actions secret.\n\n" +
 			"This resource is write-only because the Gitea API does not expose a read/list endpoint for user-scoped Actions secrets.\n" +
 			"Import is intentionally unsupported.\n\n" +
 			"WARNING:\n" +
-			"`secret_value` will be stored in the terraform state!",
+			"`secret_value` will be stored in the terraform state! Use `secret_value_wo` instead to avoid that.",
 	}
 }
 
 func resourceGiteaUserActionsSecretCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	name := d.Get("secret_name").(string)
-	_, err := client.CreateUserActionSecret(name, gitea.CreateOrUpdateSecretOption{
-		Data:        d.Get("secret_value").(string),
+	value, err := resolveSecretValue(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	_, err = client.CreateUserActionSecret(name, gitea.CreateOrUpdateSecretOption{
+		Data:        value,
 		Description: d.Get(descriptionField).(string),
 	})
 	if err != nil {
@@ -392,8 +392,12 @@ func resourceGiteaUserActionsSecretRead(ctx context.Context, d *schema.ResourceD
 func resourceGiteaUserActionsSecretUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	name := d.Get("secret_name").(string)
-	_, err := client.CreateUserActionSecret(name, gitea.CreateOrUpdateSecretOption{
-		Data:        d.Get("secret_value").(string),
+	value, err := resolveSecretValue(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	_, err = client.CreateUserActionSecret(name, gitea.CreateOrUpdateSecretOption{
+		Data:        value,
 		Description: d.Get(descriptionField).(string),
 	})
 	if err != nil {

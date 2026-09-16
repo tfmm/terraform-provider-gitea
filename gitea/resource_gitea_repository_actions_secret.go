@@ -20,7 +20,7 @@ func resourceGiteaRepositoryActionsSecret() *schema.Resource {
 			StateContext: schema.ImportStatePassthroughContext,
 		},
 
-		Schema: map[string]*schema.Schema{
+		Schema: mergeSchemaMaps(map[string]*schema.Schema{
 			"repository_owner": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -39,23 +39,17 @@ func resourceGiteaRepositoryActionsSecret() *schema.Resource {
 				ForceNew:    true,
 				Description: "Name of the secret.",
 			},
-			"secret_value": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Value of the secret.",
-				Sensitive:   true,
-			},
 			"created_at": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "Date of 'actions_secret' creation.",
 			},
-		},
+		}, writeOnlySecretValueSchema("Value of the secret.")),
 		Description: "`gitea_repository_actions_secret` manages a repository actions secret.\n\n" +
 			"Import expects the resource ID in the form `owner:repository:secret_name`.\n" +
-			"Because Gitea does not return secret values, `secret_value` must still be configured when importing.\n\n" +
+			"Because Gitea does not return secret values, `secret_value` or `secret_value_wo` must still be configured when importing.\n\n" +
 			"WARNING:\n" +
-			"`secret_value` will be stored in the terraform state!",
+			"`secret_value` will be stored in the terraform state! Use `secret_value_wo` instead to avoid that.",
 	}
 }
 
@@ -80,13 +74,12 @@ func resourceGiteaRepositoryActionsSecretCreate(ctx context.Context, d *schema.R
 	}
 	secretName := secretNameData.(string)
 
-	valueData, nameOk := d.GetOk("secret_value")
-	if !nameOk {
-		return diag.FromErr(fmt.Errorf("value must be passed"))
+	value, err := resolveSecretValue(d)
+	if err != nil {
+		return diag.FromErr(err)
 	}
-	value := valueData.(string)
 
-	_, err := client.CreateRepoActionSecret(repoOwner, repository, secretName, gitea.CreateOrUpdateSecretOption{
+	_, err = client.CreateRepoActionSecret(repoOwner, repository, secretName, gitea.CreateOrUpdateSecretOption{
 		Data: value,
 	})
 	if err != nil {
@@ -119,13 +112,12 @@ func resourceGiteaRepositoryActionsSecretUpdate(ctx context.Context, d *schema.R
 	}
 	variableName := variableNameData.(string)
 
-	valueData, nameOk := d.GetOk("secret_value")
-	if !nameOk {
-		return diag.FromErr(fmt.Errorf("secret_value must be passed"))
+	value, err := resolveSecretValue(d)
+	if err != nil {
+		return diag.FromErr(err)
 	}
-	value := valueData.(string)
 
-	_, err := client.CreateRepoActionSecret(repoOwner, repository, variableName, gitea.CreateOrUpdateSecretOption{
+	_, err = client.CreateRepoActionSecret(repoOwner, repository, variableName, gitea.CreateOrUpdateSecretOption{
 		Data: value,
 	})
 	if err != nil {
