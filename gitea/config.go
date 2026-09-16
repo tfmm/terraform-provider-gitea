@@ -4,8 +4,8 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"time"
 
 	"code.gitea.io/sdk/gitea"
@@ -29,10 +29,10 @@ func (c *Config) Client() (interface{}, error) {
 		return nil, fmt.Errorf("either a token or a username needs to be used")
 	}
 	// Configure TLS/SSL
-	var tlsConfig tls.Config
+	tlsConfig := tls.Config{MinVersion: tls.VersionTLS12}
 	// If a CACertFile has been specified, use that for cert validation
 	if c.CACertFile != "" {
-		caCert, err := ioutil.ReadFile(c.CACertFile)
+		caCert, err := os.ReadFile(c.CACertFile)
 		if err != nil {
 			return nil, err
 		}
