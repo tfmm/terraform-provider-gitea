@@ -115,54 +115,36 @@ func resourceUserUpdate(d *schema.ResourceData, meta interface{}) (err error) {
 	restricted := d.Get(userRestricted).(bool)
 	visibility := gitea.VisibleType(d.Get(userVisibility).(string))
 
-	if d.Get(userForcePasswordChange).(bool) {
-		opts := gitea.EditUserOption{
-			SourceID:                0,
-			LoginName:               d.Get(userLoginName).(string),
-			Email:                   &mail,
-			FullName:                &fullName,
-			Password:                d.Get(userPassword).(string),
-			Description:             &description,
-			MustChangePassword:      &changePassword,
-			Location:                &location,
-			Active:                  &active,
-			Admin:                   &admin,
-			AllowGitHook:            &allowHook,
-			AllowImportLocal:        &allowImport,
-			MaxRepoCreation:         &maxRepoCreation,
-			ProhibitLogin:           &accessDenied,
-			AllowCreateOrganization: &allowOrgs,
-			Restricted:              &restricted,
-			Visibility:              &visibility,
-		}
-		_, err = client.AdminEditUser(d.Get(userName).(string), opts)
-		if err != nil {
-			return err
-		}
+	opts := gitea.EditUserOption{
+		SourceID:                0,
+		LoginName:               d.Get(userLoginName).(string),
+		Email:                   &mail,
+		FullName:                &fullName,
+		Description:             &description,
+		MustChangePassword:      &changePassword,
+		Location:                &location,
+		Active:                  &active,
+		Admin:                   &admin,
+		AllowGitHook:            &allowHook,
+		AllowImportLocal:        &allowImport,
+		MaxRepoCreation:         &maxRepoCreation,
+		ProhibitLogin:           &accessDenied,
+		AllowCreateOrganization: &allowOrgs,
+		Restricted:              &restricted,
+		Visibility:              &visibility,
+	}
 
-	} else {
-		opts := gitea.EditUserOption{
-			SourceID:                0,
-			LoginName:               d.Get(userLoginName).(string),
-			Email:                   &mail,
-			FullName:                &fullName,
-			Description:             &description,
-			MustChangePassword:      &changePassword,
-			Location:                &location,
-			Active:                  &active,
-			Admin:                   &admin,
-			AllowGitHook:            &allowHook,
-			AllowImportLocal:        &allowImport,
-			MaxRepoCreation:         &maxRepoCreation,
-			ProhibitLogin:           &accessDenied,
-			AllowCreateOrganization: &allowOrgs,
-			Restricted:              &restricted,
-			Visibility:              &visibility,
-		}
-		_, err = client.AdminEditUser(d.Get(userName).(string), opts)
-		if err != nil {
-			return err
-		}
+	// Gitea never returns the password on read, so Terraform can't detect
+	// drift on it by itself. Send it whenever it changed, or whenever the
+	// user explicitly forces it via force_password_change, otherwise a
+	// changed `password` in config would silently never reach the server.
+	if d.HasChange(userPassword) || d.Get(userForcePasswordChange).(bool) {
+		opts.Password = d.Get(userPassword).(string)
+	}
+
+	_, err = client.AdminEditUser(d.Get(userName).(string), opts)
+	if err != nil {
+		return err
 	}
 
 	user, _, err = client.GetUserByID(id)
