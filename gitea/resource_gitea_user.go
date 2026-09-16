@@ -175,7 +175,7 @@ func resourceUserDelete(ctx context.Context, d *schema.ResourceData, meta interf
 	resp, err = client.AdminDeleteUser(d.Get(userName).(string))
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
-			return diag.FromErr(err)
+			return nil
 		} else {
 			return diag.FromErr(err)
 		}
