@@ -77,10 +77,18 @@ func resourceGiteaOrgActionsVariableRead(ctx context.Context, d *schema.Resource
 		}
 		return diag.FromErr(err)
 	}
-	d.Set(actionOrgField, org)
-	d.Set("variable_name", variable.Name)
-	d.Set("value", variable.Data)
-	d.Set(descriptionField, variable.Description)
+	if err := d.Set(actionOrgField, org); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("variable_name", variable.Name); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("value", variable.Data); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set(descriptionField, variable.Description); err != nil {
+		return diag.FromErr(err)
+	}
 	return nil
 }
 
@@ -197,10 +205,18 @@ func resourceGiteaOrgActionsSecretRead(ctx context.Context, d *schema.ResourceDa
 		d.SetId("")
 		return nil
 	}
-	d.Set(actionOrgField, org)
-	d.Set("secret_name", secret.Name)
-	d.Set(descriptionField, secret.Description)
-	d.Set(createdAtField, timeToString(secret.Created))
+	if err := d.Set(actionOrgField, org); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("secret_name", secret.Name); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set(descriptionField, secret.Description); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set(createdAtField, timeToString(secret.Created)); err != nil {
+		return diag.FromErr(err)
+	}
 	return nil
 }
 
@@ -284,9 +300,15 @@ func resourceGiteaUserActionsVariableRead(ctx context.Context, d *schema.Resourc
 		}
 		return diag.FromErr(err)
 	}
-	d.Set("variable_name", variable.Name)
-	d.Set("value", variable.Data)
-	d.Set(descriptionField, variable.Description)
+	if err := d.Set("variable_name", variable.Name); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("value", variable.Data); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set(descriptionField, variable.Description); err != nil {
+		return diag.FromErr(err)
+	}
 	return nil
 }
 
@@ -358,8 +380,12 @@ func resourceGiteaUserActionsSecretCreate(ctx context.Context, d *schema.Resourc
 }
 
 func resourceGiteaUserActionsSecretRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	d.Set("secret_name", d.Get("secret_name").(string))
-	d.Set(descriptionField, d.Get(descriptionField).(string))
+	if err := d.Set("secret_name", d.Get("secret_name").(string)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set(descriptionField, d.Get(descriptionField).(string)); err != nil {
+		return diag.FromErr(err)
+	}
 	return nil
 }
 

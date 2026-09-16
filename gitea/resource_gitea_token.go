@@ -157,12 +157,20 @@ func resourceTokenDelete(ctx context.Context, d *schema.ResourceData, meta inter
 func setTokenResourceData(token *gitea.AccessToken, d *schema.ResourceData) (err error) {
 
 	d.SetId(fmt.Sprintf("%d", token.ID))
-	d.Set(TokenName, token.Name)
-	if token.Token != "" {
-		d.Set(TokenHash, token.Token)
+	if err := d.Set(TokenName, token.Name); err != nil {
+		return err
 	}
-	d.Set(TokenLastEight, token.TokenLastEight)
-	d.Set(TokenScopes, token.Scopes)
+	if token.Token != "" {
+		if err := d.Set(TokenHash, token.Token); err != nil {
+			return err
+		}
+	}
+	if err := d.Set(TokenLastEight, token.TokenLastEight); err != nil {
+		return err
+	}
+	if err := d.Set(TokenScopes, token.Scopes); err != nil {
+		return err
+	}
 
 	return
 }

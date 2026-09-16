@@ -76,12 +76,24 @@ func dataSourceGiteaReleaseRead(ctx context.Context, d *schema.ResourceData, met
 	}
 
 	d.SetId(strconv.FormatInt(release.ID, 10))
-	d.Set("tag_name", release.TagName)
-	d.Set("target_commitish", release.Target)
-	d.Set("title", release.Title)
-	d.Set("note", release.Note)
-	d.Set("draft", release.IsDraft)
-	d.Set("prerelease", release.IsPrerelease)
+	if err := d.Set("tag_name", release.TagName); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("target_commitish", release.Target); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("title", release.Title); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("note", release.Note); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("draft", release.IsDraft); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("prerelease", release.IsPrerelease); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
@@ -160,7 +172,9 @@ func dataSourceGiteaReleasesRead(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s/releases", user, repo))
-	d.Set("releases", result)
+	if err := d.Set("releases", result); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }

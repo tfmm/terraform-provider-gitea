@@ -347,19 +347,35 @@ func resourceTeamDelete(ctx context.Context, d *schema.ResourceData, meta interf
 
 func setTeamResourceData(team *gitea.Team, repositories []string, d *schema.ResourceData) (err error) {
 	if team.Organization != nil {
-		d.Set(TeamOrg, team.Organization.UserName)
+		if err := d.Set(TeamOrg, team.Organization.UserName); err != nil {
+			return err
+		}
 	} else if org, ok := d.GetOk(TeamOrg); ok {
-		d.Set(TeamOrg, org.(string))
+		if err := d.Set(TeamOrg, org.(string)); err != nil {
+			return err
+		}
 	}
 	d.SetId(fmt.Sprintf("%d", team.ID))
-	d.Set(TeamCreateRepoFlag, team.CanCreateOrgRepo)
-	d.Set(TeamDescription, team.Description)
-	d.Set(TeamName, team.Name)
-	if _, hasUnitsMap := d.GetOk("units_map"); !hasUnitsMap || d.Get(TeamPermissions).(string) != "" {
-		d.Set(TeamPermissions, string(team.Permission))
+	if err := d.Set(TeamCreateRepoFlag, team.CanCreateOrgRepo); err != nil {
+		return err
 	}
-	d.Set(TeamIncludeAllReposFlag, team.IncludesAllRepositories)
-	d.Set(TeamUnits, fmt.Sprintf("%v", team.Units))
+	if err := d.Set(TeamDescription, team.Description); err != nil {
+		return err
+	}
+	if err := d.Set(TeamName, team.Name); err != nil {
+		return err
+	}
+	if _, hasUnitsMap := d.GetOk("units_map"); !hasUnitsMap || d.Get(TeamPermissions).(string) != "" {
+		if err := d.Set(TeamPermissions, string(team.Permission)); err != nil {
+			return err
+		}
+	}
+	if err := d.Set(TeamIncludeAllReposFlag, team.IncludesAllRepositories); err != nil {
+		return err
+	}
+	if err := d.Set(TeamUnits, fmt.Sprintf("%v", team.Units)); err != nil {
+		return err
+	}
 	if v, ok := d.GetOk("units_map"); ok {
 		configMap := v.(map[string]interface{})
 		stateMap := make(map[string]string)
@@ -391,13 +407,19 @@ func setTeamResourceData(team *gitea.Team, repositories []string, d *schema.Reso
 				stateMap[k] = "none"
 			}
 		}
-		d.Set("units_map", stateMap)
+		if err := d.Set("units_map", stateMap); err != nil {
+			return err
+		}
 	} else {
-		d.Set("units_map", nil)
+		if err := d.Set("units_map", nil); err != nil {
+			return err
+		}
 	}
 	if team.IncludesAllRepositories && len(repositories) == 0 {
 		if _, ok := d.GetOk(TeamRepositories); !ok {
-			d.Set(TeamRepositories, nil)
+			if err := d.Set(TeamRepositories, nil); err != nil {
+				return err
+			}
 			return
 		}
 	}
@@ -419,7 +441,9 @@ func setTeamResourceData(team *gitea.Team, repositories []string, d *schema.Reso
 				}
 			}
 			if same {
-				d.Set(TeamRepositories, cfgSlice)
+				if err := d.Set(TeamRepositories, cfgSlice); err != nil {
+					return err
+				}
 				matchedCfg = true
 			}
 		}
@@ -427,7 +451,9 @@ func setTeamResourceData(team *gitea.Team, repositories []string, d *schema.Reso
 	if !matchedCfg {
 		sortedRepos := append([]string(nil), repositories...)
 		sort.Strings(sortedRepos)
-		d.Set(TeamRepositories, stringSliceToInterfaceSlice(sortedRepos))
+		if err := d.Set(TeamRepositories, stringSliceToInterfaceSlice(sortedRepos)); err != nil {
+			return err
+		}
 	}
 
 	return

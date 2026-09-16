@@ -47,7 +47,9 @@ func dataSourceGiteaRepositoryTopicsRead(ctx context.Context, d *schema.Resource
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s/topics", user, repoName))
-	d.Set("topics", repo.Topics)
+	if err := d.Set("topics", repo.Topics); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }

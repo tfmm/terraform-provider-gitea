@@ -30,12 +30,19 @@ func resourceMilestoneRead(ctx context.Context, d *schema.ResourceData, meta int
 		}
 		return diag.FromErr(err)
 	}
-
-	d.Set("title", milestone.Title)
-	d.Set("description", milestone.Description)
-	d.Set("state", string(milestone.State))
+	if err := d.Set("title", milestone.Title); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("description", milestone.Description); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("state", string(milestone.State)); err != nil {
+		return diag.FromErr(err)
+	}
 	if milestone.Deadline != nil {
-		d.Set("due_on", milestone.Deadline.Format(time.RFC3339))
+		if err := d.Set("due_on", milestone.Deadline.Format(time.RFC3339)); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return nil
@@ -138,8 +145,12 @@ func resourceGiteaMilestone() *schema.Resource {
 				if len(parts) != 3 {
 					return nil, fmt.Errorf("unexpected ID format (%q), expected <user>/<repo>/<milestone_id>", d.Id())
 				}
-				d.Set("user", parts[0])
-				d.Set("repo", parts[1])
+				if err := d.Set("user", parts[0]); err != nil {
+					return nil, err
+				}
+				if err := d.Set("repo", parts[1]); err != nil {
+					return nil, err
+				}
 				d.SetId(parts[2])
 				return []*schema.ResourceData{d}, nil
 			},

@@ -231,41 +231,71 @@ func extractEvents(d *schema.ResourceData) []string {
 
 func setRepositoryWebhookData(hook *gitea.Hook, d *schema.ResourceData) (err error) {
 	d.SetId(strconv.FormatInt(hook.ID, 10))
-
-	d.Set(repoWebhookUsername, d.Get(repoWebhookUsername).(string))
-	d.Set(repoWebhookName, d.Get(repoWebhookName).(string))
-	d.Set(repoWebhookType, hook.Type)
-	d.Set(repoWebhookUrl, hookConfigValue(hook, "url"))
-	d.Set(repoWebhookContentType, hookConfigValue(hook, "content_type"))
+	if err := d.Set(repoWebhookUsername, d.Get(repoWebhookUsername).(string)); err != nil {
+		return err
+	}
+	if err := d.Set(repoWebhookName, d.Get(repoWebhookName).(string)); err != nil {
+		return err
+	}
+	if err := d.Set(repoWebhookType, hook.Type); err != nil {
+		return err
+	}
+	if err := d.Set(repoWebhookUrl, hookConfigValue(hook, "url")); err != nil {
+		return err
+	}
+	if err := d.Set(repoWebhookContentType, hookConfigValue(hook, "content_type")); err != nil {
+		return err
+	}
 
 	secret := hookConfigValue(hook, "secret")
 	if secret == "" {
 		secret = d.Get(repoWebhookSecret).(string)
 	}
 	if secret != "" {
-		d.Set(repoWebhookSecret, secret)
+		if err := d.Set(repoWebhookSecret, secret); err != nil {
+			return err
+		}
 	}
-
-	d.Set(repoWebhookEvents, hook.Events)
-	d.Set(repoWebhookBranchFilter, hook.BranchFilter)
-	d.Set(repoWebhookActive, hook.Active)
-	d.Set(repoWebhookCreatedAt, hook.Created.Format("2006-01-02T15:04:05Z07:00"))
-	d.Set(repoWebhookAuthorizationHeader, hook.AuthorizationHeader)
+	if err := d.Set(repoWebhookEvents, hook.Events); err != nil {
+		return err
+	}
+	if err := d.Set(repoWebhookBranchFilter, hook.BranchFilter); err != nil {
+		return err
+	}
+	if err := d.Set(repoWebhookActive, hook.Active); err != nil {
+		return err
+	}
+	if err := d.Set(repoWebhookCreatedAt, hook.Created.Format("2006-01-02T15:04:05Z07:00")); err != nil {
+		return err
+	}
+	if err := d.Set(repoWebhookAuthorizationHeader, hook.AuthorizationHeader); err != nil {
+		return err
+	}
 
 	if v := hookConfigValue(hook, "http_method"); v != "" {
-		d.Set(repoWebhookHttpMethod, v)
+		if err := d.Set(repoWebhookHttpMethod, v); err != nil {
+			return err
+		}
 	}
 	if v := hookConfigValue(hook, "channel"); v != "" {
-		d.Set(repoWebhookChannel, v)
+		if err := d.Set(repoWebhookChannel, v); err != nil {
+			return err
+		}
 	}
 	if v := hookConfigValue(hook, "username"); v != "" {
-		d.Set(repoWebhookSlackUsername, v)
+		if err := d.Set(repoWebhookSlackUsername, v); err != nil {
+			return err
+		}
 	}
 	if v := hookConfigValue(hook, "icon_url"); v != "" {
-		d.Set(repoWebhookIconUrl, v)
+		if err := d.Set(repoWebhookIconUrl, v); err != nil {
+			return err
+		}
 	}
 	if v := hookConfigValue(hook, "color"); v != "" {
-		d.Set(repoWebhookColor, v)
+		if err := d.Set(repoWebhookColor, v); err != nil {
+			return err
+		}
 	}
 
 	if isConfigConfiguredInHCL(d) {
@@ -292,10 +322,13 @@ func setRepositoryWebhookData(hook *gitea.Hook, d *schema.ResourceData) (err err
 				}
 			}
 		}
-
-		d.Set(repoWebhookConfig, newConfigMap)
+		if err := d.Set(repoWebhookConfig, newConfigMap); err != nil {
+			return err
+		}
 	} else {
-		d.Set(repoWebhookConfig, nil)
+		if err := d.Set(repoWebhookConfig, nil); err != nil {
+			return err
+		}
 	}
 
 	return
@@ -363,8 +396,12 @@ func resourceGiteaRepositoryWebhook() *schema.Resource {
 				if len(parts) != 3 {
 					return nil, fmt.Errorf("unexpected ID format (%q), expected <username>/<repo>/<webhook_id>", d.Id())
 				}
-				d.Set("username", parts[0])
-				d.Set("name", parts[1])
+				if err := d.Set("username", parts[0]); err != nil {
+					return nil, err
+				}
+				if err := d.Set("name", parts[1]); err != nil {
+					return nil, err
+				}
 				d.SetId(parts[2])
 				return []*schema.ResourceData{d}, nil
 			},

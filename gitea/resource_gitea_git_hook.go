@@ -80,10 +80,18 @@ func resourceGitHookDelete(ctx context.Context, d *schema.ResourceData, meta int
 
 func setGitHookResourceData(user string, repo string, gitHook *gitea.GitHook, d *schema.ResourceData) (err error) {
 	d.SetId(fmt.Sprintf("%s/%s/%s", user, repo, gitHook.Name))
-	d.Set(GitHookUser, user)
-	d.Set(GitHookRepo, repo)
-	d.Set(GitHookName, gitHook.Name)
-	d.Set(GitHookContent, gitHook.Content)
+	if err := d.Set(GitHookUser, user); err != nil {
+		return err
+	}
+	if err := d.Set(GitHookRepo, repo); err != nil {
+		return err
+	}
+	if err := d.Set(GitHookName, gitHook.Name); err != nil {
+		return err
+	}
+	if err := d.Set(GitHookContent, gitHook.Content); err != nil {
+		return err
+	}
 	return
 }
 

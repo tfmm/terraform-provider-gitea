@@ -172,8 +172,12 @@ func resourceTeamMembersDelete(ctx context.Context, d *schema.ResourceData, meta
 
 func setTeamMembersData(team_id int, memberNames []string, d *schema.ResourceData) (err error) {
 	d.SetId(fmt.Sprintf("%d", team_id))
-	d.Set(membersTeamID, team_id)
-	d.Set(membersTeamMembers, memberNames)
+	if err := d.Set(membersTeamID, team_id); err != nil {
+		return err
+	}
+	if err := d.Set(membersTeamMembers, memberNames); err != nil {
+		return err
+	}
 
 	return
 }

@@ -440,47 +440,98 @@ func deleteRepo(d *schema.ResourceData, client *gitea.Client) (err error) {
 func setRepoResourceData(repo *gitea.Repository, d *schema.ResourceData) (err error) {
 	d.SetId(fmt.Sprintf("%d", repo.ID))
 	if repo.Owner != nil {
-		d.Set("username", repo.Owner.UserName)
+		if err := d.Set("username", repo.Owner.UserName); err != nil {
+			return err
+		}
 	}
-	d.Set("name", repo.Name)
-	d.Set("description", repo.Description)
-	d.Set("full_name", repo.FullName)
-	d.Set("private", repo.Private)
-	d.Set("fork", repo.Fork)
-	d.Set(repoTemplate, repo.Template)
-	d.Set("mirror", repo.Mirror)
-	d.Set("size", repo.Size)
-	d.Set("html_url", repo.HTMLURL)
-	d.Set("ssh_url", repo.SSHURL)
-	d.Set("clone_url", repo.CloneURL)
-	d.Set("website", repo.Website)
-	d.Set("stars", repo.Stars)
-	d.Set("forks", repo.Forks)
-	d.Set("watchers", repo.Watchers)
-	d.Set("open_issue_count", repo.OpenIssues)
-	d.Set("default_branch", repo.DefaultBranch)
-	d.Set("created", repo.Created.String())
-	d.Set("updated", repo.Updated.String())
-	d.Set(repoIssues, repo.HasIssues)
-	d.Set(repoWiki, repo.HasWiki)
-	d.Set(repoPrs, repo.HasPullRequests)
-	d.Set(repoProjects, repo.HasProjects)
-	d.Set(repoIgnoreWhitespace, repo.IgnoreWhitespaceConflicts)
-	d.Set(repoAllowMerge, repo.AllowMerge)
-	d.Set(repoAllowRebase, repo.AllowRebase)
-	d.Set(repoAllowRebaseMerge, repo.AllowRebaseMerge)
-	d.Set(repoAllowSquash, repo.AllowSquash)
-	d.Set(repoArchived, repo.Archived)
-	d.Set(repoDefaultMergeStyle, string(repo.DefaultMergeStyle))
+	if err := d.Set("name", repo.Name); err != nil {
+		return err
+	}
+	if err := d.Set("description", repo.Description); err != nil {
+		return err
+	}
+	if err := d.Set("private", repo.Private); err != nil {
+		return err
+	}
+	if err := d.Set(repoTemplate, repo.Template); err != nil {
+		return err
+	}
+	if err := d.Set("mirror", repo.Mirror); err != nil {
+		return err
+	}
+	if err := d.Set("html_url", repo.HTMLURL); err != nil {
+		return err
+	}
+	if err := d.Set("ssh_url", repo.SSHURL); err != nil {
+		return err
+	}
+	if err := d.Set("clone_url", repo.CloneURL); err != nil {
+		return err
+	}
+	if err := d.Set("website", repo.Website); err != nil {
+		return err
+	}
+	if err := d.Set("default_branch", repo.DefaultBranch); err != nil {
+		return err
+	}
+	if err := d.Set("created", repo.Created.String()); err != nil {
+		return err
+	}
+	if err := d.Set("updated", repo.Updated.String()); err != nil {
+		return err
+	}
+	if err := d.Set(repoIssues, repo.HasIssues); err != nil {
+		return err
+	}
+	if err := d.Set(repoWiki, repo.HasWiki); err != nil {
+		return err
+	}
+	if err := d.Set(repoPrs, repo.HasPullRequests); err != nil {
+		return err
+	}
+	if err := d.Set(repoProjects, repo.HasProjects); err != nil {
+		return err
+	}
+	if err := d.Set(repoIgnoreWhitespace, repo.IgnoreWhitespaceConflicts); err != nil {
+		return err
+	}
+	if err := d.Set(repoAllowMerge, repo.AllowMerge); err != nil {
+		return err
+	}
+	if err := d.Set(repoAllowRebase, repo.AllowRebase); err != nil {
+		return err
+	}
+	if err := d.Set(repoAllowRebaseMerge, repo.AllowRebaseMerge); err != nil {
+		return err
+	}
+	if err := d.Set(repoAllowSquash, repo.AllowSquash); err != nil {
+		return err
+	}
+	if err := d.Set(repoArchived, repo.Archived); err != nil {
+		return err
+	}
+	if err := d.Set(repoDefaultMergeStyle, string(repo.DefaultMergeStyle)); err != nil {
+		return err
+	}
 	if repo.Mirror {
-		d.Set(migrationMirrorInterval, repo.MirrorInterval)
+		if err := d.Set(migrationMirrorInterval, repo.MirrorInterval); err != nil {
+			return err
+		}
 	} else {
-		d.Set(migrationMirrorInterval, "")
+		if err := d.Set(migrationMirrorInterval, ""); err != nil {
+			return err
+		}
 	}
 	if repo.Permissions != nil {
-		d.Set("permission_admin", repo.Permissions.Admin)
-		d.Set("permission_push", repo.Permissions.Push)
-		d.Set("permission_pull", repo.Permissions.Pull)
+		if err := d.Set("permission_admin", repo.Permissions.Admin); err != nil {
+			return err
+		}
+		if err := d.Set("permission_push", repo.Permissions.Push); err != nil {
+			return err
+		}
+		if err := d.Set("permission_pull", repo.Permissions.Pull); err != nil {
+			return err
+		}
 	}
 
 	return

@@ -84,10 +84,18 @@ func dataSourceGiteaLabelRead(ctx context.Context, d *schema.ResourceData, meta 
 	}
 
 	d.SetId(strconv.FormatInt(label.ID, 10))
-	d.Set("name", label.Name)
-	d.Set("color", label.Color)
-	d.Set("description", label.Description)
-	d.Set("exclusive", label.Exclusive)
+	if err := d.Set("name", label.Name); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("color", label.Color); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("description", label.Description); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("exclusive", label.Exclusive); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
@@ -179,7 +187,8 @@ func dataSourceGiteaLabelsRead(ctx context.Context, d *schema.ResourceData, meta
 			"exclusive":   label.Exclusive,
 		})
 	}
-
-	d.Set("labels", result)
+	if err := d.Set("labels", result); err != nil {
+		return diag.FromErr(err)
+	}
 	return nil
 }

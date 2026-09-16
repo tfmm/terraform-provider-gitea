@@ -106,8 +106,12 @@ func setForkResourceData(repo *gitea.Repository, client *gitea.Client, d *schema
 		}
 		name = repo.Parent.Name
 	}
-	d.Set(forkOwner, owner)
-	d.Set(forkRepo, name)
+	if err := d.Set(forkOwner, owner); err != nil {
+		return err
+	}
+	if err := d.Set(forkRepo, name); err != nil {
+		return err
+	}
 
 	organization := ""
 	if repo.Owner != nil {
@@ -120,7 +124,9 @@ func setForkResourceData(repo *gitea.Repository, client *gitea.Client, d *schema
 			organization = repo.Owner.UserName
 		}
 	}
-	d.Set(forkOrganization, organization)
+	if err := d.Set(forkOrganization, organization); err != nil {
+		return err
+	}
 
 	return
 }

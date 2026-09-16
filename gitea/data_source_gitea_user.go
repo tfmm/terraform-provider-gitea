@@ -80,16 +80,33 @@ func dataSourceGiteaUserRead(ctx context.Context, d *schema.ResourceData, meta i
 			return diag.FromErr(err)
 		}
 	}
-
-	d.Set("id", user.ID)
-	d.Set("username", user.UserName)
-	d.Set("email", user.Email)
-	d.Set("full_name", user.FullName)
-	d.Set("is_admin", user.IsAdmin)
-	d.Set("created", user.Created)
-	d.Set("avatar_url", user.AvatarURL)
-	d.Set("last_login", user.LastLogin)
-	d.Set("language", user.Language)
+	if err := d.Set("id", user.ID); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("username", user.UserName); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("email", user.Email); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("full_name", user.FullName); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("is_admin", user.IsAdmin); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("created", user.Created); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("avatar_url", user.AvatarURL); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("last_login", user.LastLogin); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("language", user.Language); err != nil {
+		return diag.FromErr(err)
+	}
 
 	d.SetId(fmt.Sprintf("%d", user.ID))
 

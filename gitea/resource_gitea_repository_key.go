@@ -110,7 +110,9 @@ func resourceRepoKeyCreate(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 
-	setRepoKeyResourceData(dk, repo.ID, d)
+	if err := setRepoKeyResourceData(dk, repo.ID, d); err != nil {
+		return diag.FromErr(err)
+	}
 	return nil
 }
 
@@ -150,10 +152,18 @@ func respurceRepoKeyDelete(ctx context.Context, d *schema.ResourceData, meta int
 
 func setRepoKeyResourceData(dk *gitea.DeployKey, repoId int64, d *schema.ResourceData) (err error) {
 	d.SetId(fmt.Sprintf("%d/%d", repoId, dk.ID))
-	d.Set(deployKeyRepoId, repoId)
-	d.Set(deployKeyReadOnly, dk.ReadOnly)
-	d.Set(deployKeyKey, dk.Key)
-	d.Set(deployKeyName, dk.Title)
+	if err := d.Set(deployKeyRepoId, repoId); err != nil {
+		return err
+	}
+	if err := d.Set(deployKeyReadOnly, dk.ReadOnly); err != nil {
+		return err
+	}
+	if err := d.Set(deployKeyKey, dk.Key); err != nil {
+		return err
+	}
+	if err := d.Set(deployKeyName, dk.Title); err != nil {
+		return err
+	}
 	return
 }
 

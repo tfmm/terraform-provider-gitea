@@ -116,8 +116,12 @@ func setTeamMembershipData(team_id int, username string, d *schema.ResourceData)
 	// This can't be team or usename only as that would not be unique since the
 	// team can have multiple members and the user can have multiple memberships.
 	d.SetId(fmt.Sprintf("%d/%s", team_id, username))
-	d.Set(membershipTeamID, team_id)
-	d.Set(membershipUserName, username)
+	if err := d.Set(membershipTeamID, team_id); err != nil {
+		return err
+	}
+	if err := d.Set(membershipUserName, username); err != nil {
+		return err
+	}
 
 	return
 }

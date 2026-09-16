@@ -36,11 +36,18 @@ func resourceLabelRead(ctx context.Context, d *schema.ResourceData, meta interfa
 		}
 		return diag.FromErr(err)
 	}
-
-	d.Set("name", label.Name)
-	d.Set("color", label.Color)
-	d.Set("description", label.Description)
-	d.Set("exclusive", label.Exclusive)
+	if err := d.Set("name", label.Name); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("color", label.Color); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("description", label.Description); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("exclusive", label.Exclusive); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
@@ -151,21 +158,31 @@ func resourceGiteaLabel() *schema.Resource {
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
 				if len(parts) == 3 {
-					d.Set("user", parts[0])
-					d.Set("repo", parts[1])
+					if err := d.Set("user", parts[0]); err != nil {
+						return nil, err
+					}
+					if err := d.Set("repo", parts[1]); err != nil {
+						return nil, err
+					}
 					d.SetId(parts[2])
 					return []*schema.ResourceData{d}, nil
 				} else if len(parts) == 2 {
 					if parts[0] == "org" {
-						d.Set("org", parts[1])
+						if err := d.Set("org", parts[1]); err != nil {
+							return nil, err
+						}
 					} else {
-						d.Set("org", parts[0])
+						if err := d.Set("org", parts[0]); err != nil {
+							return nil, err
+						}
 						d.SetId(parts[1])
 						return []*schema.ResourceData{d}, nil
 					}
 				}
 				if len(parts) == 3 && parts[0] == "org" {
-					d.Set("org", parts[1])
+					if err := d.Set("org", parts[1]); err != nil {
+						return nil, err
+					}
 					d.SetId(parts[2])
 					return []*schema.ResourceData{d}, nil
 				}

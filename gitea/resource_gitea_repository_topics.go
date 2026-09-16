@@ -23,8 +23,9 @@ func resourceRepositoryTopicsRead(ctx context.Context, d *schema.ResourceData, m
 		}
 		return diag.FromErr(err)
 	}
-
-	d.Set("topics", repo.Topics)
+	if err := d.Set("topics", repo.Topics); err != nil {
+		return diag.FromErr(err)
+	}
 	return nil
 }
 
@@ -73,8 +74,12 @@ func resourceGiteaRepositoryTopics() *schema.Resource {
 				if len(parts) != 2 {
 					return nil, fmt.Errorf("unexpected ID format (%q), expected <user>/<repo>", d.Id())
 				}
-				d.Set("user", parts[0])
-				d.Set("repo", parts[1])
+				if err := d.Set("user", parts[0]); err != nil {
+					return nil, err
+				}
+				if err := d.Set("repo", parts[1]); err != nil {
+					return nil, err
+				}
 				d.SetId(d.Id())
 				return []*schema.ResourceData{d}, nil
 			},

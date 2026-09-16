@@ -365,40 +365,63 @@ func resourceRepositoryFileDelete(ctx context.Context, d *schema.ResourceData, m
 }
 
 func setRepositoryFileResourceData(response *gitea.FileResponse, d *schema.ResourceData) (err error) {
-	// Make a unique ID for the resource from the repo and file path
-	d.Set("file_path", response.Content.Path)
+	if err :=
+		// Make a unique ID for the resource from the repo and file path
+		d.Set("file_path", response.Content.Path); err != nil {
+		return err
+	}
 	d.SetId(buildRepositoryFileID(
 		d.Get("username").(string),
 		d.Get("name").(string),
 		d.Get("branch").(string),
 		response.Content.Path,
 	))
-	d.Set("file_sha", response.Content.SHA)
+	if err := d.Set("file_sha", response.Content.SHA); err != nil {
+		return err
+	}
 	lastCommitSHA := ""
 	if response.Commit != nil {
 		lastCommitSHA = response.Commit.SHA
 	}
-	d.Set("last_commit_sha", lastCommitSHA)
-	d.Set("size", response.Content.Size)
-	// Preserve the user-provided commit_message in state to avoid perpetual diffs
-	if v, ok := d.GetOk("commit_message"); ok {
-		d.Set("commit_message", v.(string))
-	} else {
-		d.Set("commit_message", "")
+	if err := d.Set("last_commit_sha", lastCommitSHA); err != nil {
+		return err
 	}
-	d.Set("content", response.Content.Content) // This is base64 encoded content
+	if err := d.Set("size", response.Content.Size); err !=
+		// Preserve the user-provided commit_message in state to avoid perpetual diffs
+		nil {
+		return err
+	}
+
+	if v, ok := d.GetOk("commit_message"); ok {
+		if err := d.Set("commit_message", v.(string)); err != nil {
+			return err
+		}
+	} else {
+		if err := d.Set("commit_message", ""); err != nil {
+			return err
+		}
+	}
+	if err := d.Set("content", response.Content.Content); err != // This is base64 encoded content
+		nil {
+		return err
+	}
 	// Resolve created_at from commit fields without emitting zero time
 	created := resolveCommitCreated(response.Commit)
 	if !created.IsZero() {
-		d.Set("created_at", created.Format(time.RFC3339))
+		if err := d.Set("created_at", created.Format(time.RFC3339)); err != nil {
+			return err
+		}
 	} else {
-		d.Set("created_at", "")
+		if err := d.Set("created_at", ""); err != nil {
+			return err
+
+			// resolveCommitCreated prefers committer/author date; falls back to CommitMeta.Created
+		}
 	}
 
 	return
 }
 
-// resolveCommitCreated prefers committer/author date; falls back to CommitMeta.Created
 func resolveCommitCreated(c *gitea.FileCommitResponse) time.Time {
 	if c == nil {
 		return time.Time{}

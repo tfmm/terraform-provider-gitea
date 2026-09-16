@@ -72,15 +72,30 @@ func dataSourceGiteaOrgRead(ctx context.Context, d *schema.ResourceData, meta in
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	d.Set("id", org.ID)
-	d.Set("name", org.UserName)
-	d.Set("full_name", org.FullName)
-	d.Set("avatar_url", org.AvatarURL)
-	d.Set("location", org.Location)
-	d.Set("website", org.Website)
-	d.Set("description", org.Description)
-	d.Set("visibility", org.Visibility)
+	if err := d.Set("id", org.ID); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("name", org.UserName); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("full_name", org.FullName); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("avatar_url", org.AvatarURL); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("location", org.Location); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("website", org.Website); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("description", org.Description); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("visibility", org.Visibility); err != nil {
+		return diag.FromErr(err)
+	}
 
 	d.SetId(fmt.Sprintf("%d", org.ID))
 

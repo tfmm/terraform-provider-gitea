@@ -77,14 +77,26 @@ func dataSourceGiteaMilestoneRead(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	d.SetId(strconv.FormatInt(milestone.ID, 10))
-	d.Set("title", milestone.Title)
-	d.Set("description", milestone.Description)
-	d.Set("state", string(milestone.State))
-	d.Set("open_issues", milestone.OpenIssues)
-	d.Set("closed_issues", milestone.ClosedIssues)
+	if err := d.Set("title", milestone.Title); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("description", milestone.Description); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("state", string(milestone.State)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("open_issues", milestone.OpenIssues); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("closed_issues", milestone.ClosedIssues); err != nil {
+		return diag.FromErr(err)
+	}
 
 	if milestone.Deadline != nil {
-		d.Set("due_on", milestone.Deadline.Format(time.RFC3339))
+		if err := d.Set("due_on", milestone.Deadline.Format(time.RFC3339)); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return nil
@@ -173,7 +185,9 @@ func dataSourceGiteaMilestonesRead(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s/milestones", user, repo))
-	d.Set("milestones", result)
+	if err := d.Set("milestones", result); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }

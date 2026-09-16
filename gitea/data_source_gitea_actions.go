@@ -85,7 +85,9 @@ func dataSourceGiteaActionsRunnersRead(ctx context.Context, d *schema.ResourceDa
 	if err := d.Set("runners", flattenActionRunners(runners)); err != nil {
 		return diag.FromErr(fmt.Errorf("error setting runners: %w", err))
 	}
-	d.Set("total_count", len(runners))
+	if err := d.Set("total_count", len(runners)); err != nil {
+		return diag.FromErr(err)
+	}
 	d.SetId(buildResourceID(cfg.Scope, cfg.Org, cfg.Owner, cfg.Repo))
 	return nil
 }
@@ -164,7 +166,9 @@ func dataSourceGiteaActionsRunsRead(ctx context.Context, d *schema.ResourceData,
 	if err := d.Set("workflow_runs", flattenActionRuns(runs)); err != nil {
 		return diag.FromErr(fmt.Errorf("error setting workflow_runs: %w", err))
 	}
-	d.Set("total_count", len(runs))
+	if err := d.Set("total_count", len(runs)); err != nil {
+		return diag.FromErr(err)
+	}
 	d.SetId(buildResourceID(cfg.Scope, cfg.Org, cfg.Owner, cfg.Repo, d.Get("branch").(string), d.Get("event").(string), d.Get("status").(string), d.Get("actor").(string), d.Get("head_sha").(string)))
 	return nil
 }
@@ -269,7 +273,9 @@ func dataSourceGiteaActionsJobsRead(ctx context.Context, d *schema.ResourceData,
 	if err := d.Set("jobs", flattenActionJobs(jobs)); err != nil {
 		return diag.FromErr(fmt.Errorf("error setting jobs: %w", err))
 	}
-	d.Set("total_count", len(jobs))
+	if err := d.Set("total_count", len(jobs)); err != nil {
+		return diag.FromErr(err)
+	}
 	d.SetId(buildResourceID(cfg.Scope, cfg.Org, cfg.Owner, cfg.Repo, fmt.Sprintf("%d", runID), d.Get("status").(string)))
 	return nil
 }
@@ -317,7 +323,9 @@ func dataSourceGiteaRepositoryActionsWorkflowsRead(ctx context.Context, d *schem
 	if err := d.Set("workflows", flattenActionWorkflows(workflows.Workflows)); err != nil {
 		return diag.FromErr(fmt.Errorf("error setting workflows: %w", err))
 	}
-	d.Set("total_count", len(workflows.Workflows))
+	if err := d.Set("total_count", len(workflows.Workflows)); err != nil {
+		return diag.FromErr(err)
+	}
 	d.SetId(buildResourceID(owner, repo))
 	return nil
 }
@@ -395,7 +403,9 @@ func dataSourceGiteaRepositoryActionsArtifactsRead(ctx context.Context, d *schem
 	if err := d.Set("artifacts", flattenActionArtifacts(artifacts)); err != nil {
 		return diag.FromErr(fmt.Errorf("error setting artifacts: %w", err))
 	}
-	d.Set("total_count", len(artifacts))
+	if err := d.Set("total_count", len(artifacts)); err != nil {
+		return diag.FromErr(err)
+	}
 	d.SetId(buildResourceID(owner, repo, fmt.Sprintf("%d", runID), name))
 	return nil
 }
@@ -412,9 +422,15 @@ func resourceGiteaRepositoryActionsWorkflowState() *schema.Resource {
 				if err != nil {
 					return nil, err
 				}
-				d.Set(repositoryOwnerField, owner)
-				d.Set(repositoryNameField, repo)
-				d.Set(workflowIDField, workflowID)
+				if err := d.Set(repositoryOwnerField, owner); err != nil {
+					return nil, err
+				}
+				if err := d.Set(repositoryNameField, repo); err != nil {
+					return nil, err
+				}
+				if err := d.Set(workflowIDField, workflowID); err != nil {
+					return nil, err
+				}
 				return []*schema.ResourceData{d}, nil
 			},
 		},
@@ -479,15 +495,33 @@ func resourceGiteaRepositoryActionsWorkflowStateRead(ctx context.Context, d *sch
 		}
 		return diag.FromErr(err)
 	}
-	d.Set(repositoryOwnerField, owner)
-	d.Set(repositoryNameField, repo)
-	d.Set(workflowIDField, workflowID)
-	d.Set(enabledField, workflow.State != "disabled")
-	d.Set("name", workflow.Name)
-	d.Set("path", workflow.Path)
-	d.Set("state", workflow.State)
-	d.Set(createdAtField, timeToString(workflow.CreatedAt))
-	d.Set(updatedAtField, timeToString(workflow.UpdatedAt))
+	if err := d.Set(repositoryOwnerField, owner); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set(repositoryNameField, repo); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set(workflowIDField, workflowID); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set(enabledField, workflow.State != "disabled"); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("name", workflow.Name); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("path", workflow.Path); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("state", workflow.State); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set(createdAtField, timeToString(workflow.CreatedAt)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set(updatedAtField, timeToString(workflow.UpdatedAt)); err != nil {
+		return diag.FromErr(err)
+	}
 	return nil
 }
 
@@ -621,7 +655,9 @@ func dataSourceGiteaActionsRunnerRegistrationTokenRead(ctx context.Context, d *s
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	d.Set("token", token.Token)
+	if err := d.Set("token", token.Token); err != nil {
+		return diag.FromErr(err)
+	}
 	d.SetId(buildResourceID("runner_registration_token", cfg.Scope, cfg.Org, cfg.Owner, cfg.Repo))
 	return nil
 }
@@ -666,15 +702,33 @@ func dataSourceGiteaRepositoryActionsArtifactRead(ctx context.Context, d *schema
 	if artifact.WorkflowRun != nil {
 		runID = artifact.WorkflowRun.ID
 	}
-	d.Set("name", artifact.Name)
-	d.Set("size_in_bytes", int(artifact.SizeInBytes))
-	d.Set("url", artifact.URL)
-	d.Set("archive_download_url", artifact.ArchiveDownloadURL)
-	d.Set("expired", artifact.Expired)
-	d.Set("workflow_run_id", int(runID))
-	d.Set(createdAtField, timeToString(artifact.CreatedAt))
-	d.Set(updatedAtField, timeToString(artifact.UpdatedAt))
-	d.Set("expires_at", timeToString(artifact.ExpiresAt))
+	if err := d.Set("name", artifact.Name); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("size_in_bytes", int(artifact.SizeInBytes)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("url", artifact.URL); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("archive_download_url", artifact.ArchiveDownloadURL); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("expired", artifact.Expired); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("workflow_run_id", int(runID)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set(createdAtField, timeToString(artifact.CreatedAt)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set(updatedAtField, timeToString(artifact.UpdatedAt)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("expires_at", timeToString(artifact.ExpiresAt)); err != nil {
+		return diag.FromErr(err)
+	}
 	d.SetId(buildResourceID(owner, repo, fmt.Sprintf("%d", artifactID)))
 	return nil
 }

@@ -218,8 +218,11 @@ func setOAuth2ResourceData(app *gitea.Oauth2, d *schema.ResourceData) (err error
 	}
 
 	if app.ClientSecret != "" {
-		// Gitea API only reports client secrets if the resource is newly created
-		d.Set(oauth2KeyClientSecret, app.ClientSecret)
+		if err :=
+			// Gitea API only reports client secrets if the resource is newly created
+			d.Set(oauth2KeyClientSecret, app.ClientSecret); err != nil {
+			return err
+		}
 	}
 
 	return

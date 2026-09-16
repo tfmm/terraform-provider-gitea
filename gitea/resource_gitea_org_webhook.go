@@ -177,40 +177,68 @@ func resourceOrgWebhookDelete(ctx context.Context, d *schema.ResourceData, meta 
 
 func setOrgWebhookData(org string, hook *gitea.Hook, d *schema.ResourceData) (err error) {
 	d.SetId(strconv.FormatInt(hook.ID, 10))
-
-	d.Set(orgWebhookOrg, org)
-	d.Set(orgWebhookType, hook.Type)
-	d.Set(orgWebhookUrl, hookConfigValue(hook, "url"))
-	d.Set(orgWebhookContentType, hookConfigValue(hook, "content_type"))
+	if err := d.Set(orgWebhookOrg, org); err != nil {
+		return err
+	}
+	if err := d.Set(orgWebhookType, hook.Type); err != nil {
+		return err
+	}
+	if err := d.Set(orgWebhookUrl, hookConfigValue(hook, "url")); err != nil {
+		return err
+	}
+	if err := d.Set(orgWebhookContentType, hookConfigValue(hook, "content_type")); err != nil {
+		return err
+	}
 
 	secret := hookConfigValue(hook, "secret")
 	if secret == "" {
 		secret = d.Get(orgWebhookSecret).(string)
 	}
 	if secret != "" {
-		d.Set(orgWebhookSecret, secret)
+		if err := d.Set(orgWebhookSecret, secret); err != nil {
+			return err
+		}
 	}
-
-	d.Set(orgWebhookEvents, hook.Events)
-	d.Set(orgWebhookBranchFilter, hook.BranchFilter)
-	d.Set(orgWebhookActive, hook.Active)
-	d.Set(orgWebhookCreatedAt, hook.Created.Format("2006-01-02T15:04:05Z07:00"))
-	d.Set(orgWebhookAuthorizationHeader, hook.AuthorizationHeader)
+	if err := d.Set(orgWebhookEvents, hook.Events); err != nil {
+		return err
+	}
+	if err := d.Set(orgWebhookBranchFilter, hook.BranchFilter); err != nil {
+		return err
+	}
+	if err := d.Set(orgWebhookActive, hook.Active); err != nil {
+		return err
+	}
+	if err := d.Set(orgWebhookCreatedAt, hook.Created.Format("2006-01-02T15:04:05Z07:00")); err != nil {
+		return err
+	}
+	if err := d.Set(orgWebhookAuthorizationHeader, hook.AuthorizationHeader); err != nil {
+		return err
+	}
 
 	if v := hookConfigValue(hook, "http_method"); v != "" {
-		d.Set(orgWebhookHttpMethod, v)
+		if err := d.Set(orgWebhookHttpMethod, v); err != nil {
+			return err
+		}
 	}
 	if v := hookConfigValue(hook, "channel"); v != "" {
-		d.Set(orgWebhookChannel, v)
+		if err := d.Set(orgWebhookChannel, v); err != nil {
+			return err
+		}
 	}
 	if v := hookConfigValue(hook, "username"); v != "" {
-		d.Set(orgWebhookSlackUsername, v)
+		if err := d.Set(orgWebhookSlackUsername, v); err != nil {
+			return err
+		}
 	}
 	if v := hookConfigValue(hook, "icon_url"); v != "" {
-		d.Set(orgWebhookIconUrl, v)
+		if err := d.Set(orgWebhookIconUrl, v); err != nil {
+			return err
+		}
 	}
 	if v := hookConfigValue(hook, "color"); v != "" {
-		d.Set(orgWebhookColor, v)
+		if err := d.Set(orgWebhookColor, v); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -228,7 +256,9 @@ func resourceGiteaOrgWebhook() *schema.Resource {
 				if len(parts) != 2 {
 					return nil, fmt.Errorf("unexpected ID format (%q), expected <org>/<webhook_id>", d.Id())
 				}
-				d.Set("org", parts[0])
+				if err := d.Set("org", parts[0]); err != nil {
+					return nil, err
+				}
 				d.SetId(parts[1])
 				return []*schema.ResourceData{d}, nil
 			},

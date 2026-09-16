@@ -211,14 +211,30 @@ func resourceOrgDelete(ctx context.Context, d *schema.ResourceData, meta interfa
 
 func setOrgResourceData(org *gitea.Organization, d *schema.ResourceData, repos *[]string) (err error) {
 	d.SetId(fmt.Sprintf("%d", org.ID))
-	d.Set("name", org.UserName)
-	d.Set("full_name", org.FullName)
-	d.Set("avatar_url", org.AvatarURL)
-	d.Set("description", org.Description)
-	d.Set("website", org.Website)
-	d.Set("location", org.Location)
-	d.Set("visibility", org.Visibility)
-	d.Set("repos", repos)
+	if err := d.Set("name", org.UserName); err != nil {
+		return err
+	}
+	if err := d.Set("full_name", org.FullName); err != nil {
+		return err
+	}
+	if err := d.Set("avatar_url", org.AvatarURL); err != nil {
+		return err
+	}
+	if err := d.Set("description", org.Description); err != nil {
+		return err
+	}
+	if err := d.Set("website", org.Website); err != nil {
+		return err
+	}
+	if err := d.Set("location", org.Location); err != nil {
+		return err
+	}
+	if err := d.Set("visibility", org.Visibility); err != nil {
+		return err
+	}
+	if err := d.Set("repos", repos); err != nil {
+		return err
+	}
 
 	return
 }

@@ -68,11 +68,21 @@ func dataSourceGiteaOrgWebhookRead(ctx context.Context, d *schema.ResourceData, 
 	}
 
 	d.SetId(strconv.FormatInt(hook.ID, 10))
-	d.Set("type", hook.Type)
-	d.Set("url", hookConfigValue(hook, "url"))
-	d.Set("content_type", hookConfigValue(hook, "content_type"))
-	d.Set("active", hook.Active)
-	d.Set("events", hook.Events)
+	if err := d.Set("type", hook.Type); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("url", hookConfigValue(hook, "url")); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("content_type", hookConfigValue(hook, "content_type")); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("active", hook.Active); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("events", hook.Events); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
@@ -135,7 +145,9 @@ func dataSourceGiteaOrgWebhooksRead(ctx context.Context, d *schema.ResourceData,
 	}
 
 	d.SetId(fmt.Sprintf("org/%s/webhooks", org))
-	d.Set("webhooks", result)
+	if err := d.Set("webhooks", result); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }

@@ -55,8 +55,12 @@ func dataSourceGiteaRepositoryTagRead(ctx context.Context, d *schema.ResourceDat
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s/%s", user, repo, name))
-	d.Set("commit_sha", tag.Commit.SHA)
-	d.Set("message", tag.Message)
+	if err := d.Set("commit_sha", tag.Commit.SHA); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("message", tag.Message); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
@@ -124,7 +128,9 @@ func dataSourceGiteaRepositoryTagsRead(ctx context.Context, d *schema.ResourceDa
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s/tags", user, repo))
-	d.Set("tags", result)
+	if err := d.Set("tags", result); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }

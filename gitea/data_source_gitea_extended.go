@@ -204,13 +204,18 @@ func dataSourceGiteaRepositoryIssueConfigRead(ctx context.Context, d *schema.Res
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	d.Set("blank_issues_enabled", config.BlankIssuesEnabled)
+	if err := d.Set("blank_issues_enabled", config.BlankIssuesEnabled); err != nil {
+		return diag.FromErr(err)
+	}
 	if err := d.Set("contact_links", flattenContactLinks(config.ContactLinks)); err != nil {
 		return diag.FromErr(fmt.Errorf("error setting contact_links: %w", err))
 	}
-	d.Set("valid", validation.Valid)
-	d.Set("validation_message", validation.Message)
+	if err := d.Set("valid", validation.Valid); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("validation_message", validation.Message); err != nil {
+		return diag.FromErr(err)
+	}
 	d.SetId(buildResourceID(owner, repo))
 	return nil
 }
@@ -277,9 +282,12 @@ func dataSourceGiteaRepositorySigningKeyRead(ctx context.Context, d *schema.Reso
 	if sshErr != nil && (sshResp == nil || sshResp.StatusCode != http.StatusNotFound) {
 		return diag.FromErr(sshErr)
 	}
-
-	d.Set("gpg_public_key", strings.TrimSpace(gpgKey))
-	d.Set("ssh_public_key", strings.TrimSpace(sshKey))
+	if err := d.Set("gpg_public_key", strings.TrimSpace(gpgKey)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("ssh_public_key", strings.TrimSpace(sshKey)); err != nil {
+		return diag.FromErr(err)
+	}
 	d.SetId(buildResourceID(owner, repo))
 	return nil
 }
@@ -374,11 +382,21 @@ func dataSourceGiteaTeamRepositoryRead(ctx context.Context, d *schema.ResourceDa
 		}
 		return diag.FromErr(err)
 	}
-	d.Set("id", int(repo.ID))
-	d.Set("full_name", repo.FullName)
-	d.Set("private", repo.Private)
-	d.Set("html_url", repo.HTMLURL)
-	d.Set("default_branch", repo.DefaultBranch)
+	if err := d.Set("id", int(repo.ID)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("full_name", repo.FullName); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("private", repo.Private); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("html_url", repo.HTMLURL); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("default_branch", repo.DefaultBranch); err != nil {
+		return diag.FromErr(err)
+	}
 	d.SetId(buildResourceID(fmt.Sprintf("%d", teamID), owner, repoName))
 	return nil
 }

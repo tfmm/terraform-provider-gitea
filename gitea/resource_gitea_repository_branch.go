@@ -129,8 +129,12 @@ func resourceRepoBranchDelete(ctx context.Context, d *schema.ResourceData, meta 
 }
 
 func setRepoBranchResourceData(rb *gitea.Branch, repoId int64, d *schema.ResourceData) (err error) {
-	d.Set(repoBranchName, rb.Name)
-	d.Set(repoBranchRepo, repoId)
+	if err := d.Set(repoBranchName, rb.Name); err != nil {
+		return err
+	}
+	if err := d.Set(repoBranchRepo, repoId); err != nil {
+		return err
+	}
 	return
 }
 

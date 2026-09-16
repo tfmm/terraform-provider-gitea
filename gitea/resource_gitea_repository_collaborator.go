@@ -118,10 +118,18 @@ func parseCollaboratorID(id string) (owner, repo, username string, err error) {
 
 func setRepositoryCollaboratorData(d *schema.ResourceData, owner, repo, username, permission string) (err error) {
 	d.SetId(fmt.Sprintf("%s/%s/%s", owner, repo, username))
-	d.Set(collabOwner, owner)
-	d.Set(collabRepo, repo)
-	d.Set(collabUsername, username)
-	d.Set(collabPermission, permission)
+	if err := d.Set(collabOwner, owner); err != nil {
+		return err
+	}
+	if err := d.Set(collabRepo, repo); err != nil {
+		return err
+	}
+	if err := d.Set(collabUsername, username); err != nil {
+		return err
+	}
+	if err := d.Set(collabPermission, permission); err != nil {
+		return err
+	}
 	return
 }
 

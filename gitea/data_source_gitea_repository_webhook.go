@@ -134,35 +134,69 @@ func dataSourceGiteaRepositoryWebhookRead(ctx context.Context, d *schema.Resourc
 	}
 
 	d.SetId(strconv.FormatInt(hook.ID, 10))
-	d.Set("username", owner)
-	d.Set("name", repo)
-	d.Set("type", hook.Type)
-	d.Set("url", hookConfigValue(hook, "url"))
-	d.Set("content_type", hookConfigValue(hook, "content_type"))
-	d.Set("secret", hookConfigValue(hook, "secret"))
-	d.Set("authorization_header", hook.AuthorizationHeader)
-	d.Set("events", stringSliceToInterfaceSlice(hook.Events))
-	d.Set("branch_filter", hook.BranchFilter)
-	d.Set("active", hook.Active)
-	d.Set("created_at", hook.Created.Format("2006-01-02T15:04:05Z07:00"))
+	if err := d.Set("username", owner); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("name", repo); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("type", hook.Type); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("url", hookConfigValue(hook, "url")); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("content_type", hookConfigValue(hook, "content_type")); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("secret", hookConfigValue(hook, "secret")); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("authorization_header", hook.AuthorizationHeader); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("events", stringSliceToInterfaceSlice(hook.Events)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("branch_filter", hook.BranchFilter); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("active", hook.Active); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("created_at", hook.Created.Format("2006-01-02T15:04:05Z07:00")); err != nil {
+		return diag.FromErr(err)
+	}
 
 	if v := hookConfigValue(hook, "http_method"); v != "" {
-		d.Set("http_method", v)
+		if err := d.Set("http_method", v); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if v := hookConfigValue(hook, "channel"); v != "" {
-		d.Set("channel", v)
+		if err := d.Set("channel", v); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if v := hookConfigValue(hook, "username"); v != "" {
-		d.Set("slack_username", v)
+		if err := d.Set("slack_username", v); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if v := hookConfigValue(hook, "icon_url"); v != "" {
-		d.Set("icon_url", v)
+		if err := d.Set("icon_url", v); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if v := hookConfigValue(hook, "color"); v != "" {
-		d.Set("color", v)
+		if err := d.Set("color", v); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if hook.Config != nil {
-		d.Set("config", hook.Config)
+		if err := d.Set("config", hook.Config); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return nil

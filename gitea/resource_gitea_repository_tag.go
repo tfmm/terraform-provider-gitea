@@ -24,10 +24,15 @@ func resourceRepositoryTagRead(ctx context.Context, d *schema.ResourceData, meta
 		}
 		return diag.FromErr(err)
 	}
-
-	d.Set("name", tag.Name)
-	d.Set("commit_sha", tag.Commit.SHA)
-	d.Set("message", tag.Message)
+	if err := d.Set("name", tag.Name); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("commit_sha", tag.Commit.SHA); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("message", tag.Message); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
@@ -74,9 +79,15 @@ func resourceGiteaRepositoryTag() *schema.Resource {
 				if len(parts) != 3 {
 					return nil, fmt.Errorf("unexpected ID format (%q), expected <user>/<repo>/<tag_name>", d.Id())
 				}
-				d.Set("user", parts[0])
-				d.Set("repo", parts[1])
-				d.Set("name", parts[2])
+				if err := d.Set("user", parts[0]); err != nil {
+					return nil, err
+				}
+				if err := d.Set("repo", parts[1]); err != nil {
+					return nil, err
+				}
+				if err := d.Set("name", parts[2]); err != nil {
+					return nil, err
+				}
 				d.SetId(d.Id())
 				return []*schema.ResourceData{d}, nil
 			},

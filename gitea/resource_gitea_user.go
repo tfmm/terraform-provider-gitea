@@ -180,28 +180,60 @@ func resourceUserDelete(ctx context.Context, d *schema.ResourceData, meta interf
 
 func setUserResourceData(user *gitea.User, d *schema.ResourceData) (err error) {
 	d.SetId(fmt.Sprintf("%d", user.ID))
-	d.Set(userName, user.UserName)
-	d.Set(userEmail, user.Email)
-	d.Set(userFullName, user.FullName)
-	d.Set(userAdmin, user.IsAdmin)
-	d.Set("created", user.Created)
-	d.Set("avatar_url", user.AvatarURL)
-	d.Set("last_login", user.LastLogin)
-	d.Set("language", user.Language)
-	d.Set(userLoginName, user.LoginName)
-	d.Set(userVisibility, string(user.Visibility))
-	d.Set(userDescription, user.Description)
-	d.Set(userLocation, user.Location)
-	d.Set(userActive, user.IsActive)
-	d.Set(userPhorbitLogin, user.ProhibitLogin)
-	d.Set(userRestricted, user.Restricted)
-	d.Set(userMustChangePassword, d.Get(userMustChangePassword).(bool))
-	d.Set(userSendNotification, d.Get(userSendNotification).(bool))
-	d.Set(userAllowGitHook, d.Get(userAllowGitHook).(bool))
-	d.Set(userAllowLocalImport, d.Get(userAllowLocalImport).(bool))
-	d.Set(userMaxRepoCreation, d.Get(userMaxRepoCreation).(int))
-	d.Set(userAllowCreateOrgs, d.Get(userAllowCreateOrgs).(bool))
-	d.Set(userForcePasswordChange, d.Get(userForcePasswordChange).(bool))
+	if err := d.Set(userName, user.UserName); err != nil {
+		return err
+	}
+	if err := d.Set(userEmail, user.Email); err != nil {
+		return err
+	}
+	if err := d.Set(userFullName, user.FullName); err != nil {
+		return err
+	}
+	if err := d.Set(userAdmin, user.IsAdmin); err != nil {
+		return err
+	}
+	if err := d.Set(userLoginName, user.LoginName); err != nil {
+		return err
+	}
+	if err := d.Set(userVisibility, string(user.Visibility)); err != nil {
+		return err
+	}
+	if err := d.Set(userDescription, user.Description); err != nil {
+		return err
+	}
+	if err := d.Set(userLocation, user.Location); err != nil {
+		return err
+	}
+	if err := d.Set(userActive, user.IsActive); err != nil {
+		return err
+	}
+	if err := d.Set(userPhorbitLogin, user.ProhibitLogin); err != nil {
+		return err
+	}
+	if err := d.Set(userRestricted, user.Restricted); err != nil {
+		return err
+	}
+	if err := d.Set(userMustChangePassword, d.Get(userMustChangePassword).(bool)); err != nil {
+		return err
+	}
+	if err := d.Set(userSendNotification, d.Get(userSendNotification).(bool)); err != nil {
+		return err
+	}
+	if err := d.Set(userAllowGitHook, d.Get(userAllowGitHook).(bool)); err != nil {
+		return err
+	}
+	if err := d.Set(userAllowLocalImport, d.Get(userAllowLocalImport).(bool)); err != nil {
+		return err
+	}
+	if err := d.Set(userMaxRepoCreation, d.Get(userMaxRepoCreation).(int)); err != nil {
+		return err
+	}
+	if err := d.Set(userAllowCreateOrgs, d.Get(userAllowCreateOrgs).(bool)); err != nil {
+		return err
+	}
+	if err := d.Set(userForcePasswordChange, d.Get(userForcePasswordChange).(bool)); err != nil {
+		return err
+	}
 
 	return
 }

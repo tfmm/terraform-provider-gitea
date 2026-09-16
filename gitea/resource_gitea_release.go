@@ -29,13 +29,24 @@ func resourceReleaseRead(ctx context.Context, d *schema.ResourceData, meta inter
 		}
 		return diag.FromErr(err)
 	}
-
-	d.Set("tag_name", release.TagName)
-	d.Set("target_commitish", release.Target)
-	d.Set("title", release.Title)
-	d.Set("note", release.Note)
-	d.Set("draft", release.IsDraft)
-	d.Set("prerelease", release.IsPrerelease)
+	if err := d.Set("tag_name", release.TagName); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("target_commitish", release.Target); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("title", release.Title); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("note", release.Note); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("draft", release.IsDraft); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("prerelease", release.IsPrerelease); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
@@ -119,8 +130,12 @@ func resourceGiteaRelease() *schema.Resource {
 				if len(parts) != 3 {
 					return nil, fmt.Errorf("unexpected ID format (%q), expected <user>/<repo>/<release_id>", d.Id())
 				}
-				d.Set("user", parts[0])
-				d.Set("repo", parts[1])
+				if err := d.Set("user", parts[0]); err != nil {
+					return nil, err
+				}
+				if err := d.Set("repo", parts[1]); err != nil {
+					return nil, err
+				}
 				d.SetId(parts[2])
 				return []*schema.ResourceData{d}, nil
 			},

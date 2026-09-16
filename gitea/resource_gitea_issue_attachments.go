@@ -67,16 +67,36 @@ func issueAttachmentSchema(subjectField, subjectDescription string) map[string]*
 }
 
 func setIssueAttachmentData(d *schema.ResourceData, owner, repo string, attachment *gitea.Attachment, subjectField string, subjectID int64) error {
-	d.Set(repositoryOwnerField, owner)
-	d.Set(repositoryNameField, repo)
-	d.Set(subjectField, int(subjectID))
-	d.Set("attachment_id", int(attachment.ID))
-	d.Set("name", attachment.Name)
-	d.Set("size", int(attachment.Size))
-	d.Set("download_count", int(attachment.DownloadCount))
-	d.Set("uuid", attachment.UUID)
-	d.Set("download_url", attachment.DownloadURL)
-	d.Set(createdAtField, timeToString(attachment.Created))
+	if err := d.Set(repositoryOwnerField, owner); err != nil {
+		return err
+	}
+	if err := d.Set(repositoryNameField, repo); err != nil {
+		return err
+	}
+	if err := d.Set(subjectField, int(subjectID)); err != nil {
+		return err
+	}
+	if err := d.Set("attachment_id", int(attachment.ID)); err != nil {
+		return err
+	}
+	if err := d.Set("name", attachment.Name); err != nil {
+		return err
+	}
+	if err := d.Set("size", int(attachment.Size)); err != nil {
+		return err
+	}
+	if err := d.Set("download_count", int(attachment.DownloadCount)); err != nil {
+		return err
+	}
+	if err := d.Set("uuid", attachment.UUID); err != nil {
+		return err
+	}
+	if err := d.Set("download_url", attachment.DownloadURL); err != nil {
+		return err
+	}
+	if err := d.Set(createdAtField, timeToString(attachment.Created)); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -381,8 +401,12 @@ func issueAttachmentImporter(subjectField string) *schema.ResourceImporter {
 			if len(parts) != 4 {
 				return nil, fmt.Errorf("unexpected ID format (%q), expected owner:repo:%s:attachment_id", d.Id(), subjectField)
 			}
-			d.Set(repositoryOwnerField, parts[0])
-			d.Set(repositoryNameField, parts[1])
+			if err := d.Set(repositoryOwnerField, parts[0]); err != nil {
+				return nil, err
+			}
+			if err := d.Set(repositoryNameField, parts[1]); err != nil {
+				return nil, err
+			}
 			id, err := strconv.Atoi(parts[2])
 			if err != nil {
 				return nil, err
@@ -390,7 +414,9 @@ func issueAttachmentImporter(subjectField string) *schema.ResourceImporter {
 			if _, err := strconv.Atoi(parts[3]); err != nil {
 				return nil, err
 			}
-			d.Set(subjectField, id)
+			if err := d.Set(subjectField, id); err != nil {
+				return nil, err
+			}
 			d.SetId(buildFourPartID(parts[0], parts[1], parts[2], parts[3]))
 			return []*schema.ResourceData{d}, nil
 		},

@@ -120,13 +120,27 @@ func resourcePublicKeyDelete(ctx context.Context, d *schema.ResourceData, meta i
 
 func setPublicKeyResourceData(pubKey *gitea.PublicKey, d *schema.ResourceData) (err error) {
 	d.SetId(fmt.Sprintf("%d", pubKey.ID))
-	d.Set(PublicKeyUser, pubKey.Owner.UserName)
-	d.Set(PublicKey, pubKey.Key)
-	d.Set(PublicKeyTitle, pubKey.Title)
-	d.Set(PublicKeyReadOnlyFlag, pubKey.ReadOnly)
-	d.Set(PublicKeyCreated, pubKey.Created)
-	d.Set(PublicKeyFingerprint, pubKey.Fingerprint)
-	d.Set(PublicKeyType, pubKey.KeyType)
+	if err := d.Set(PublicKeyUser, pubKey.Owner.UserName); err != nil {
+		return err
+	}
+	if err := d.Set(PublicKey, pubKey.Key); err != nil {
+		return err
+	}
+	if err := d.Set(PublicKeyTitle, pubKey.Title); err != nil {
+		return err
+	}
+	if err := d.Set(PublicKeyReadOnlyFlag, pubKey.ReadOnly); err != nil {
+		return err
+	}
+	if err := d.Set(PublicKeyCreated, pubKey.Created); err != nil {
+		return err
+	}
+	if err := d.Set(PublicKeyFingerprint, pubKey.Fingerprint); err != nil {
+		return err
+	}
+	if err := d.Set(PublicKeyType, pubKey.KeyType); err != nil {
+		return err
+	}
 	return
 }
 

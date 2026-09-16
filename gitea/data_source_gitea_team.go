@@ -71,14 +71,26 @@ func dataSourceGiteaTeamRead(ctx context.Context, d *schema.ResourceData, meta i
 	}
 
 	d.SetId(strconv.FormatInt(team.ID, 10))
-	d.Set("name", team.Name)
-	d.Set("description", team.Description)
-	d.Set("permission", string(team.Permission))
-	d.Set("can_create_repos", team.CanCreateOrgRepo)
-	d.Set("include_all_repositories", team.IncludesAllRepositories)
+	if err := d.Set("name", team.Name); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("description", team.Description); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("permission", string(team.Permission)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("can_create_repos", team.CanCreateOrgRepo); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("include_all_repositories", team.IncludesAllRepositories); err != nil {
+		return diag.FromErr(err)
+	}
 
 	if team.Organization != nil {
-		d.Set("organisation", team.Organization.UserName)
+		if err := d.Set("organisation", team.Organization.UserName); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	units := make([]string, len(team.Units))
