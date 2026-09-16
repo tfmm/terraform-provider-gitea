@@ -141,36 +141,32 @@ func resourceGiteaRepositoryActionsSecretRead(d *schema.ResourceData, meta inter
 		return err
 	}
 
-	var requestedSecret *gitea.Secret
-
-	page := 0
-	for requestedSecret == nil {
-		page = page + 1
-
-		secrets, resp, err := client.ListRepoActionSecret(repoOwner, repository, gitea.ListRepoActionSecretOption{
+	var notFound bool
+	secrets, err := collectPaginated(func(page int) ([]*gitea.Secret, error) {
+		items, resp, callErr := client.ListRepoActionSecret(repoOwner, repository, gitea.ListRepoActionSecretOption{
 			ListOptions: gitea.ListOptions{
 				Page:     page,
 				PageSize: 100,
 			},
 		})
-		if err != nil {
-			if resp != nil && resp.StatusCode == 404 {
-				d.SetId("")
-				return nil
-			}
-			return err
+		if callErr != nil && resp != nil && resp.StatusCode == 404 {
+			notFound = true
 		}
+		return items, callErr
+	})
+	if notFound {
+		d.SetId("")
+		return nil
+	}
+	if err != nil {
+		return err
+	}
 
-		if len(secrets) == 0 {
-			d.SetId("")
-			return nil
-		}
-
-		for _, secret := range secrets {
-			if secret.Name == secretName {
-				requestedSecret = secret
-				break
-			}
+	var requestedSecret *gitea.Secret
+	for _, secret := range secrets {
+		if secret != nil && secret.Name == secretName {
+			requestedSecret = secret
+			break
 		}
 	}
 
