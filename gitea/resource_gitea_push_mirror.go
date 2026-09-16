@@ -84,15 +84,33 @@ func resourceGiteaPushMirrorRead(ctx context.Context, d *schema.ResourceData, me
 	}
 
 	d.SetId(buildThreePartID(owner, repo, pm.RemoteName))
-	_ = d.Set("owner", owner)
-	_ = d.Set("repo", repo)
-	_ = d.Set("remote_name", pm.RemoteName)
-	_ = d.Set("remote_address", pm.RemoteAddress)
-	_ = d.Set("interval", pm.Interval)
-	_ = d.Set("sync_on_commit", pm.SyncONCommit)
-	_ = d.Set("created", pm.Created)
-	_ = d.Set("last_error", pm.LastError)
-	_ = d.Set("last_update", pm.LastUpdate)
+	if err := d.Set("owner", owner); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("repo", repo); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("remote_name", pm.RemoteName); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("remote_address", pm.RemoteAddress); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("interval", pm.Interval); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("sync_on_commit", pm.SyncONCommit); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("created", pm.Created); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("last_error", pm.LastError); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("last_update", pm.LastUpdate); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
