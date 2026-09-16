@@ -1,16 +1,18 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGiteaRepo() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaRepoRead,
+		ReadContext: dataSourceGiteaRepoRead,
 
 		Schema: map[string]*schema.Schema{
 			"username": {
@@ -112,24 +114,24 @@ func dataSourceGiteaRepo() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaRepoRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaRepoRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	usernameData, usernameOk := d.GetOk("username")
 	if !usernameOk {
-		return fmt.Errorf("name of repo owner must be passed")
+		return diag.FromErr(fmt.Errorf("name of repo owner must be passed"))
 	}
 	username := strings.ToLower(usernameData.(string))
 
 	nameData, nameOk := d.GetOk("name")
 	if !nameOk {
-		return fmt.Errorf("name of repo must be passed")
+		return diag.FromErr(fmt.Errorf("name of repo must be passed"))
 	}
 	name := strings.ToLower(nameData.(string))
 
 	repo, _, err := client.GetRepo(username, name)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(fmt.Sprintf("%d", repo.ID))

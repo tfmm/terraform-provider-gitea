@@ -1,10 +1,12 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -15,7 +17,8 @@ const (
 	collabPermission string = "permission"
 )
 
-func resourceRepositoryCollaboratorCreate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepositoryCollaboratorCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	owner := d.Get(collabOwner).(string)
@@ -27,20 +30,21 @@ func resourceRepositoryCollaboratorCreate(d *schema.ResourceData, meta interface
 		Permission: &permission,
 	})
 	if err != nil {
-		return
+		return diag.FromErr(err)
 	}
 
 	err = setRepositoryCollaboratorData(d, owner, repo, username, string(permission))
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceRepositoryCollaboratorRead(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepositoryCollaboratorRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	owner, repo, username, parseErr := parseCollaboratorID(d.Id())
 	if parseErr != nil {
-		return parseErr
+		return diag.FromErr(parseErr)
 	}
 
 	isCollab, resp, err := client.IsCollaborator(owner, repo, username)
@@ -49,7 +53,7 @@ func resourceRepositoryCollaboratorRead(d *schema.ResourceData, meta interface{}
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 	if !isCollab {
 		d.SetId("")
@@ -58,15 +62,16 @@ func resourceRepositoryCollaboratorRead(d *schema.ResourceData, meta interface{}
 
 	permResult, _, err := client.CollaboratorPermission(owner, repo, username)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setRepositoryCollaboratorData(d, owner, repo, username, string(permResult.Permission))
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceRepositoryCollaboratorUpdate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepositoryCollaboratorUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	owner := d.Get(collabOwner).(string)
@@ -78,15 +83,16 @@ func resourceRepositoryCollaboratorUpdate(d *schema.ResourceData, meta interface
 		Permission: &permission,
 	})
 	if err != nil {
-		return
+		return diag.FromErr(err)
 	}
 
 	err = setRepositoryCollaboratorData(d, owner, repo, username, string(permission))
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceRepositoryCollaboratorDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepositoryCollaboratorDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	owner := d.Get(collabOwner).(string)
@@ -95,7 +101,7 @@ func resourceRepositoryCollaboratorDelete(d *schema.ResourceData, meta interface
 
 	_, err = client.DeleteCollaborator(owner, repo, username)
 
-	return
+	return diag.FromErr(err)
 }
 
 func parseCollaboratorID(id string) (owner, repo, username string, err error) {
@@ -121,10 +127,10 @@ func setRepositoryCollaboratorData(d *schema.ResourceData, owner, repo, username
 
 func resourceGiteaRepositoryCollaborator() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceRepositoryCollaboratorRead,
-		Create: resourceRepositoryCollaboratorCreate,
-		Update: resourceRepositoryCollaboratorUpdate,
-		Delete: resourceRepositoryCollaboratorDelete,
+		ReadContext:   resourceRepositoryCollaboratorRead,
+		CreateContext: resourceRepositoryCollaboratorCreate,
+		UpdateContext: resourceRepositoryCollaboratorUpdate,
+		DeleteContext: resourceRepositoryCollaboratorDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

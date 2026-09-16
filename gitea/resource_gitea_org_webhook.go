@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -29,12 +30,13 @@ const (
 	orgWebhookConfig              string = "config"
 )
 
-func resourceOrgWebhookRead(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceOrgWebhookRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	org := d.Get(orgWebhookOrg).(string)
@@ -45,11 +47,11 @@ func resourceOrgWebhookRead(d *schema.ResourceData, meta interface{}) (err error
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setOrgWebhookData(org, hook, d)
-	return
+	return diag.FromErr(err)
 }
 
 func buildOrgWebhookConfigMap(d *schema.ResourceData) map[string]string {
@@ -96,7 +98,8 @@ func buildOrgWebhookConfigMap(d *schema.ResourceData) map[string]string {
 	return config
 }
 
-func resourceOrgWebhookCreate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceOrgWebhookCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	org := d.Get(orgWebhookOrg).(string)
@@ -115,20 +118,21 @@ func resourceOrgWebhookCreate(d *schema.ResourceData, meta interface{}) (err err
 
 	hook, _, err := client.CreateOrgHook(org, hookOption)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setOrgWebhookData(org, hook, d)
-	return
+	return diag.FromErr(err)
 }
 
-func resourceOrgWebhookUpdate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceOrgWebhookUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	org := d.Get(orgWebhookOrg).(string)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	config := buildOrgWebhookConfigMap(d)
@@ -145,29 +149,30 @@ func resourceOrgWebhookUpdate(d *schema.ResourceData, meta interface{}) (err err
 
 	_, err = client.EditOrgHook(org, id, hookOption)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	hook, _, err := client.GetOrgHook(org, id)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setOrgWebhookData(org, hook, d)
-	return
+	return diag.FromErr(err)
 }
 
-func resourceOrgWebhookDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceOrgWebhookDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	org := d.Get(orgWebhookOrg).(string)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	_, err = client.DeleteOrgHook(org, id)
-	return err
+	return diag.FromErr(err)
 }
 
 func setOrgWebhookData(org string, hook *gitea.Hook, d *schema.ResourceData) (err error) {
@@ -213,10 +218,10 @@ func setOrgWebhookData(org string, hook *gitea.Hook, d *schema.ResourceData) (er
 
 func resourceGiteaOrgWebhook() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceOrgWebhookRead,
-		Create: resourceOrgWebhookCreate,
-		Update: resourceOrgWebhookUpdate,
-		Delete: resourceOrgWebhookDelete,
+		ReadContext:   resourceOrgWebhookRead,
+		CreateContext: resourceOrgWebhookCreate,
+		UpdateContext: resourceOrgWebhookUpdate,
+		DeleteContext: resourceOrgWebhookDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")

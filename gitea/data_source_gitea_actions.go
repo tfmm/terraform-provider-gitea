@@ -7,12 +7,13 @@ import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGiteaActionsRunners() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaActionsRunnersRead,
+		ReadContext: dataSourceGiteaActionsRunnersRead,
 		Schema: mergeSchemaMaps(actionScopeSchema(), map[string]*schema.Schema{
 			"disabled": {
 				Type:        schema.TypeBool,
@@ -55,14 +56,14 @@ func dataSourceGiteaActionsRunners() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaActionsRunnersRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaActionsRunnersRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	cfg, err := resolveActionScope(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := requireVersion(client, ">= 1.25.0", "actions runners"); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	disabled := optionalBoolValue(d, "disabled")
@@ -78,11 +79,11 @@ func dataSourceGiteaActionsRunnersRead(d *schema.ResourceData, meta interface{})
 		return response.Runners, nil
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("runners", flattenActionRunners(runners)); err != nil {
-		return fmt.Errorf("error setting runners: %w", err)
+		return diag.FromErr(fmt.Errorf("error setting runners: %w", err))
 	}
 	d.Set("total_count", len(runners))
 	d.SetId(buildResourceID(cfg.Scope, cfg.Org, cfg.Owner, cfg.Repo))
@@ -91,7 +92,7 @@ func dataSourceGiteaActionsRunnersRead(d *schema.ResourceData, meta interface{})
 
 func dataSourceGiteaActionsRuns() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaActionsRunsRead,
+		ReadContext: dataSourceGiteaActionsRunsRead,
 		Schema: mergeSchemaMaps(actionScopeSchema(), map[string]*schema.Schema{
 			"branch":   {Type: schema.TypeString, Optional: true},
 			"event":    {Type: schema.TypeString, Optional: true},
@@ -130,14 +131,14 @@ func dataSourceGiteaActionsRuns() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaActionsRunsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaActionsRunsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	cfg, err := resolveActionScope(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := requireVersion(client, ">= 1.26.0", "actions runs"); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	opt := gitea.ListRepoActionRunsOptions{
@@ -157,11 +158,11 @@ func dataSourceGiteaActionsRunsRead(d *schema.ResourceData, meta interface{}) er
 		return response.WorkflowRuns, nil
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("workflow_runs", flattenActionRuns(runs)); err != nil {
-		return fmt.Errorf("error setting workflow_runs: %w", err)
+		return diag.FromErr(fmt.Errorf("error setting workflow_runs: %w", err))
 	}
 	d.Set("total_count", len(runs))
 	d.SetId(buildResourceID(cfg.Scope, cfg.Org, cfg.Owner, cfg.Repo, d.Get("branch").(string), d.Get("event").(string), d.Get("status").(string), d.Get("actor").(string), d.Get("head_sha").(string)))
@@ -170,7 +171,7 @@ func dataSourceGiteaActionsRunsRead(d *schema.ResourceData, meta interface{}) er
 
 func dataSourceGiteaActionsJobs() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaActionsJobsRead,
+		ReadContext: dataSourceGiteaActionsJobsRead,
 		Schema: mergeSchemaMaps(actionScopeSchema(), map[string]*schema.Schema{
 			runIDField: {
 				Type:        schema.TypeInt,
@@ -235,19 +236,19 @@ func dataSourceGiteaActionsJobs() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaActionsJobsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaActionsJobsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	cfg, err := resolveActionScope(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := requireVersion(client, ">= 1.26.0", "actions jobs"); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	runID := int64(d.Get(runIDField).(int))
 	if cfg.Scope != actionScopeRepo && runID != 0 {
-		return fmt.Errorf("%s is only supported for scope %q", runIDField, actionScopeRepo)
+		return diag.FromErr(fmt.Errorf("%s is only supported for scope %q", runIDField, actionScopeRepo))
 	}
 
 	opt := gitea.ListRepoActionJobsOptions{
@@ -262,11 +263,11 @@ func dataSourceGiteaActionsJobsRead(d *schema.ResourceData, meta interface{}) er
 		return response.Jobs, nil
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("jobs", flattenActionJobs(jobs)); err != nil {
-		return fmt.Errorf("error setting jobs: %w", err)
+		return diag.FromErr(fmt.Errorf("error setting jobs: %w", err))
 	}
 	d.Set("total_count", len(jobs))
 	d.SetId(buildResourceID(cfg.Scope, cfg.Org, cfg.Owner, cfg.Repo, fmt.Sprintf("%d", runID), d.Get("status").(string)))
@@ -275,7 +276,7 @@ func dataSourceGiteaActionsJobsRead(d *schema.ResourceData, meta interface{}) er
 
 func dataSourceGiteaRepositoryActionsWorkflows() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaRepositoryActionsWorkflowsRead,
+		ReadContext: dataSourceGiteaRepositoryActionsWorkflowsRead,
 		Schema: mergeSchemaMaps(repositoryIdentitySchema(), map[string]*schema.Schema{
 			"workflows": {
 				Type:        schema.TypeList,
@@ -302,19 +303,19 @@ func dataSourceGiteaRepositoryActionsWorkflows() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaRepositoryActionsWorkflowsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaRepositoryActionsWorkflowsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	if err := requireVersion(client, ">= 1.25.0", "repository actions workflows"); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	owner := strings.ToLower(d.Get(repositoryOwnerField).(string))
 	repo := strings.ToLower(d.Get(repositoryNameField).(string))
 	workflows, _, err := client.ListRepoActionWorkflows(owner, repo)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("workflows", flattenActionWorkflows(workflows.Workflows)); err != nil {
-		return fmt.Errorf("error setting workflows: %w", err)
+		return diag.FromErr(fmt.Errorf("error setting workflows: %w", err))
 	}
 	d.Set("total_count", len(workflows.Workflows))
 	d.SetId(buildResourceID(owner, repo))
@@ -323,7 +324,7 @@ func dataSourceGiteaRepositoryActionsWorkflowsRead(d *schema.ResourceData, meta 
 
 func dataSourceGiteaRepositoryActionsArtifacts() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaRepositoryActionsArtifactsRead,
+		ReadContext: dataSourceGiteaRepositoryActionsArtifactsRead,
 		Schema: mergeSchemaMaps(repositoryIdentitySchema(), map[string]*schema.Schema{
 			runIDField: {
 				Type:        schema.TypeInt,
@@ -360,10 +361,10 @@ func dataSourceGiteaRepositoryActionsArtifacts() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaRepositoryActionsArtifactsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaRepositoryActionsArtifactsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	if err := requireVersion(client, ">= 1.25.0", "repository actions artifacts"); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	owner := strings.ToLower(d.Get(repositoryOwnerField).(string))
 	repo := strings.ToLower(d.Get(repositoryNameField).(string))
@@ -388,11 +389,11 @@ func dataSourceGiteaRepositoryActionsArtifactsRead(d *schema.ResourceData, meta 
 		return response.Artifacts, nil
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("artifacts", flattenActionArtifacts(artifacts)); err != nil {
-		return fmt.Errorf("error setting artifacts: %w", err)
+		return diag.FromErr(fmt.Errorf("error setting artifacts: %w", err))
 	}
 	d.Set("total_count", len(artifacts))
 	d.SetId(buildResourceID(owner, repo, fmt.Sprintf("%d", runID), name))
@@ -401,10 +402,10 @@ func dataSourceGiteaRepositoryActionsArtifactsRead(d *schema.ResourceData, meta 
 
 func resourceGiteaRepositoryActionsWorkflowState() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGiteaRepositoryActionsWorkflowStateCreate,
-		Read:   resourceGiteaRepositoryActionsWorkflowStateRead,
-		Update: resourceGiteaRepositoryActionsWorkflowStateUpdate,
-		Delete: resourceGiteaRepositoryActionsWorkflowStateDelete,
+		CreateContext: resourceGiteaRepositoryActionsWorkflowStateCreate,
+		ReadContext:   resourceGiteaRepositoryActionsWorkflowStateRead,
+		UpdateContext: resourceGiteaRepositoryActionsWorkflowStateUpdate,
+		DeleteContext: resourceGiteaRepositoryActionsWorkflowStateDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				owner, repo, workflowID, err := parseThreePartID(d.Id(), repositoryOwnerField, repositoryNameField, workflowIDField)
@@ -453,22 +454,22 @@ func resourceGiteaRepositoryActionsWorkflowState() *schema.Resource {
 	}
 }
 
-func resourceGiteaRepositoryActionsWorkflowStateCreate(d *schema.ResourceData, meta interface{}) error {
-	if err := setRepositoryWorkflowState(d, meta); err != nil {
-		return err
+func resourceGiteaRepositoryActionsWorkflowStateCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	if diags := setRepositoryWorkflowState(ctx, d, meta); diags.HasError() {
+		return diags
 	}
 	d.SetId(buildThreePartID(strings.ToLower(d.Get(repositoryOwnerField).(string)), strings.ToLower(d.Get(repositoryNameField).(string)), d.Get(workflowIDField).(string)))
-	return resourceGiteaRepositoryActionsWorkflowStateRead(d, meta)
+	return resourceGiteaRepositoryActionsWorkflowStateRead(ctx, d, meta)
 }
 
-func resourceGiteaRepositoryActionsWorkflowStateRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaRepositoryActionsWorkflowStateRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	if err := requireVersion(client, ">= 1.25.0", "repository actions workflow state"); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	owner, repo, workflowID, err := parseThreePartID(d.Id(), repositoryOwnerField, repositoryNameField, workflowIDField)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	workflow, resp, err := client.GetRepoActionWorkflow(owner, repo, workflowID)
 	if err != nil {
@@ -476,7 +477,7 @@ func resourceGiteaRepositoryActionsWorkflowStateRead(d *schema.ResourceData, met
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 	d.Set(repositoryOwnerField, owner)
 	d.Set(repositoryNameField, repo)
@@ -490,22 +491,22 @@ func resourceGiteaRepositoryActionsWorkflowStateRead(d *schema.ResourceData, met
 	return nil
 }
 
-func resourceGiteaRepositoryActionsWorkflowStateUpdate(d *schema.ResourceData, meta interface{}) error {
-	if err := setRepositoryWorkflowState(d, meta); err != nil {
-		return err
+func resourceGiteaRepositoryActionsWorkflowStateUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	if diags := setRepositoryWorkflowState(ctx, d, meta); diags.HasError() {
+		return diags
 	}
-	return resourceGiteaRepositoryActionsWorkflowStateRead(d, meta)
+	return resourceGiteaRepositoryActionsWorkflowStateRead(ctx, d, meta)
 }
 
-func resourceGiteaRepositoryActionsWorkflowStateDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaRepositoryActionsWorkflowStateDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	_, _, _, err := parseThreePartID(d.Id(), repositoryOwnerField, repositoryNameField, workflowIDField)
-	return err
+	return diag.FromErr(err)
 }
 
-func setRepositoryWorkflowState(d *schema.ResourceData, meta interface{}) error {
+func setRepositoryWorkflowState(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	if err := requireVersion(client, ">= 1.25.0", "repository actions workflow state"); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	owner := strings.ToLower(d.Get(repositoryOwnerField).(string))
 	repo := strings.ToLower(d.Get(repositoryNameField).(string))
@@ -516,7 +517,7 @@ func setRepositoryWorkflowState(d *schema.ResourceData, meta interface{}) error 
 	} else {
 		_, err = client.DisableRepoActionWorkflow(owner, repo, workflowID)
 	}
-	return err
+	return diag.FromErr(err)
 }
 
 func listActionRunnersByScope(client *gitea.Client, cfg actionScopeConfig, opt gitea.ListActionRunnersOptions) (*gitea.ActionRunnersResponse, error) {
@@ -582,7 +583,7 @@ func listActionJobsByScope(client *gitea.Client, cfg actionScopeConfig, runID in
 
 func dataSourceGiteaActionsRunnerRegistrationToken() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaActionsRunnerRegistrationTokenRead,
+		ReadContext: dataSourceGiteaActionsRunnerRegistrationTokenRead,
 		Schema: mergeSchemaMaps(actionScopeSchema(), map[string]*schema.Schema{
 			"token": {
 				Type:        schema.TypeString,
@@ -595,14 +596,14 @@ func dataSourceGiteaActionsRunnerRegistrationToken() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaActionsRunnerRegistrationTokenRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaActionsRunnerRegistrationTokenRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	cfg, err := resolveActionScope(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := requireVersion(client, ">= 1.22.0", "actions runner registration token"); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	var token *gitea.RegistrationToken
 	switch cfg.Scope {
@@ -618,7 +619,7 @@ func dataSourceGiteaActionsRunnerRegistrationTokenRead(d *schema.ResourceData, m
 		err = fmt.Errorf("unsupported scope %q", cfg.Scope)
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.Set("token", token.Token)
 	d.SetId(buildResourceID("runner_registration_token", cfg.Scope, cfg.Org, cfg.Owner, cfg.Repo))
@@ -627,7 +628,7 @@ func dataSourceGiteaActionsRunnerRegistrationTokenRead(d *schema.ResourceData, m
 
 func dataSourceGiteaRepositoryActionsArtifact() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaRepositoryActionsArtifactRead,
+		ReadContext: dataSourceGiteaRepositoryActionsArtifactRead,
 		Schema: mergeSchemaMaps(repositoryIdentitySchema(), map[string]*schema.Schema{
 			"artifact_id": {
 				Type:        schema.TypeInt,
@@ -648,10 +649,10 @@ func dataSourceGiteaRepositoryActionsArtifact() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaRepositoryActionsArtifactRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaRepositoryActionsArtifactRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	if err := requireVersion(client, ">= 1.25.0", "repository actions artifact"); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	owner := strings.ToLower(d.Get(repositoryOwnerField).(string))
 	repo := strings.ToLower(d.Get(repositoryNameField).(string))
@@ -659,7 +660,7 @@ func dataSourceGiteaRepositoryActionsArtifactRead(d *schema.ResourceData, meta i
 
 	artifact, _, err := client.GetRepoActionArtifact(owner, repo, artifactID)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	runID := int64(0)
 	if artifact.WorkflowRun != nil {

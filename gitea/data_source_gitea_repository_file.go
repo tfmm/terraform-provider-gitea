@@ -1,18 +1,20 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGiteaRepositoryFile() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaRepositoryFileRead,
+		ReadContext: dataSourceGiteaRepositoryFileRead,
 		Schema: map[string]*schema.Schema{
 			"username": {
 				Type:        schema.TypeString,
@@ -70,7 +72,7 @@ func dataSourceGiteaRepositoryFile() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaRepositoryFileRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaRepositoryFileRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	owner := strings.ToLower(d.Get("username").(string))
@@ -81,9 +83,9 @@ func dataSourceGiteaRepositoryFileRead(d *schema.ResourceData, meta interface{})
 	content, resp, err := client.GetContents(owner, repo, branch, filePath)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("file not found: %s", filePath)
+			return diag.FromErr(fmt.Errorf("file not found: %s", filePath))
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	// Build a FileResponse-like structure to reuse state setter
@@ -93,10 +95,10 @@ func dataSourceGiteaRepositoryFileRead(d *schema.ResourceData, meta interface{})
 	if content.LastCommitSha != nil && *content.LastCommitSha != "" {
 		commit, resp, err := client.GetSingleCommit(owner, repo, *content.LastCommitSha)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if resp != nil && resp.StatusCode >= 400 {
-			return fmt.Errorf("error getting commit: %s", resp.Status)
+			return diag.FromErr(fmt.Errorf("error getting commit: %s", resp.Status))
 		}
 
 		result.Commit = &gitea.FileCommitResponse{
@@ -119,7 +121,7 @@ func dataSourceGiteaRepositoryFileRead(d *schema.ResourceData, meta interface{})
 
 	// Reuse resource setter for common fields
 	if err := setRepositoryFileResourceData(result, d); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil

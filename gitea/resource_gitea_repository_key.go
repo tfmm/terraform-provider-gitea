@@ -1,11 +1,13 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -50,12 +52,13 @@ func resourceRepoKeyIdParts(d *schema.ResourceData) (bool, int64, int64, error) 
 	return true, repoId, keyId, err
 }
 
-func resourceRepoKeyRead(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepoKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	hasId, repoId, keyId, err := resourceRepoKeyIdParts(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if !hasId {
 		d.SetId("")
@@ -68,7 +71,7 @@ func resourceRepoKeyRead(d *schema.ResourceData, meta interface{}) (err error) {
 			d.SetId("")
 			return nil
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
@@ -78,22 +81,23 @@ func resourceRepoKeyRead(d *schema.ResourceData, meta interface{}) (err error) {
 			d.SetId("")
 			return nil
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	err = setRepoKeyResourceData(key, repoId, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceRepoKeyCreate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepoKeyCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	repo, _, err := client.GetRepoByID(int64(d.Get(deployKeyRepoId).(int)))
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	dk, _, err := client.CreateDeployKey(repo.Owner.UserName, repo.Name, gitea.CreateKeyOption{
@@ -103,19 +107,20 @@ func resourceRepoKeyCreate(d *schema.ResourceData, meta interface{}) (err error)
 	})
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	setRepoKeyResourceData(dk, repo.ID, d)
 	return nil
 }
 
-func respurceRepoKeyDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func respurceRepoKeyDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	hasId, repoId, keyId, err := resourceRepoKeyIdParts(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if !hasId {
 		d.SetId("")
@@ -128,7 +133,7 @@ func respurceRepoKeyDelete(d *schema.ResourceData, meta interface{}) (err error)
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	resp, err = client.DeleteDeployKey(repo.Owner.UserName, repo.Name, keyId)
@@ -137,7 +142,7 @@ func respurceRepoKeyDelete(d *schema.ResourceData, meta interface{}) (err error)
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
@@ -154,9 +159,9 @@ func setRepoKeyResourceData(dk *gitea.DeployKey, repoId int64, d *schema.Resourc
 
 func resourceGiteaRepositoryKey() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceRepoKeyRead,
-		Create: resourceRepoKeyCreate,
-		Delete: respurceRepoKeyDelete,
+		ReadContext:   resourceRepoKeyRead,
+		CreateContext: resourceRepoKeyCreate,
+		DeleteContext: respurceRepoKeyDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

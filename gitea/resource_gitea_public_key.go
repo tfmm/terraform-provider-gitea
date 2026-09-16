@@ -1,11 +1,13 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -37,12 +39,13 @@ func sshKeyDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
 	return normalizeSSHKey(old) == normalizeSSHKey(new)
 }
 
-func resourcePublicKeyRead(d *schema.ResourceData, meta interface{}) (err error) {
+func resourcePublicKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	var resp *gitea.Response
@@ -55,16 +58,17 @@ func resourcePublicKeyRead(d *schema.ResourceData, meta interface{}) (err error)
 			d.SetId("")
 			return nil
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	err = setPublicKeyResourceData(pubKey, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourcePublicKeyCreate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourcePublicKeyCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	var pubKey *gitea.PublicKey
@@ -79,23 +83,24 @@ func resourcePublicKeyCreate(d *schema.ResourceData, meta interface{}) (err erro
 
 	err = setPublicKeyResourceData(pubKey, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourcePublicKeyUpdate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourcePublicKeyUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	// update = recreate
-	if err = resourcePublicKeyDelete(d, meta); err != nil {
-		return err
+	if diags := resourcePublicKeyDelete(ctx, d, meta); diags.HasError() {
+		return diags
 	}
-	return resourcePublicKeyCreate(d, meta)
+	return resourcePublicKeyCreate(ctx, d, meta)
 }
 
-func resourcePublicKeyDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func resourcePublicKeyDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	var resp *gitea.Response
@@ -104,13 +109,13 @@ func resourcePublicKeyDelete(d *schema.ResourceData, meta interface{}) (err erro
 
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
-			return
+			return diag.FromErr(err)
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
-	return
+	return diag.FromErr(err)
 }
 
 func setPublicKeyResourceData(pubKey *gitea.PublicKey, d *schema.ResourceData) (err error) {
@@ -127,10 +132,10 @@ func setPublicKeyResourceData(pubKey *gitea.PublicKey, d *schema.ResourceData) (
 
 func resourceGiteaPublicKey() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourcePublicKeyRead,
-		Create: resourcePublicKeyCreate,
-		Update: resourcePublicKeyUpdate,
-		Delete: resourcePublicKeyDelete,
+		ReadContext:   resourcePublicKeyRead,
+		CreateContext: resourcePublicKeyCreate,
+		UpdateContext: resourcePublicKeyUpdate,
+		DeleteContext: resourcePublicKeyDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},

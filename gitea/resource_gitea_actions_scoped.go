@@ -1,19 +1,21 @@
 package gitea
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGiteaOrgActionsVariable() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGiteaOrgActionsVariableCreate,
-		Read:   resourceGiteaOrgActionsVariableRead,
-		Update: resourceGiteaOrgActionsVariableUpdate,
-		Delete: resourceGiteaOrgActionsVariableDelete,
+		CreateContext: resourceGiteaOrgActionsVariableCreate,
+		ReadContext:   resourceGiteaOrgActionsVariableRead,
+		UpdateContext: resourceGiteaOrgActionsVariableUpdate,
+		DeleteContext: resourceGiteaOrgActionsVariableDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -46,7 +48,7 @@ func resourceGiteaOrgActionsVariable() *schema.Resource {
 	}
 }
 
-func resourceGiteaOrgActionsVariableCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaOrgActionsVariableCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	org := strings.ToLower(d.Get(actionOrgField).(string))
 	name := d.Get("variable_name").(string)
@@ -55,17 +57,17 @@ func resourceGiteaOrgActionsVariableCreate(d *schema.ResourceData, meta interfac
 		Description: d.Get(descriptionField).(string),
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.SetId(buildTwoPartID(org, name))
-	return resourceGiteaOrgActionsVariableRead(d, meta)
+	return resourceGiteaOrgActionsVariableRead(ctx, d, meta)
 }
 
-func resourceGiteaOrgActionsVariableRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaOrgActionsVariableRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	org, name, err := parseTwoPartID(d.Id(), actionOrgField, "variable_name")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	variable, resp, err := client.GetOrgActionVariable(org, name)
 	if err != nil {
@@ -73,7 +75,7 @@ func resourceGiteaOrgActionsVariableRead(d *schema.ResourceData, meta interface{
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 	d.Set(actionOrgField, org)
 	d.Set("variable_name", variable.Name)
@@ -82,7 +84,7 @@ func resourceGiteaOrgActionsVariableRead(d *schema.ResourceData, meta interface{
 	return nil
 }
 
-func resourceGiteaOrgActionsVariableUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaOrgActionsVariableUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	org := strings.ToLower(d.Get(actionOrgField).(string))
 	name := d.Get("variable_name").(string)
@@ -92,27 +94,27 @@ func resourceGiteaOrgActionsVariableUpdate(d *schema.ResourceData, meta interfac
 		Description: d.Get(descriptionField).(string),
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	return resourceGiteaOrgActionsVariableRead(d, meta)
+	return resourceGiteaOrgActionsVariableRead(ctx, d, meta)
 }
 
-func resourceGiteaOrgActionsVariableDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaOrgActionsVariableDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	org, name, err := parseTwoPartID(d.Id(), actionOrgField, "variable_name")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	_, err = client.DeleteOrgActionVariable(org, name)
-	return err
+	return diag.FromErr(err)
 }
 
 func resourceGiteaOrgActionsSecret() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGiteaOrgActionsSecretCreate,
-		Read:   resourceGiteaOrgActionsSecretRead,
-		Update: resourceGiteaOrgActionsSecretUpdate,
-		Delete: resourceGiteaOrgActionsSecretDelete,
+		CreateContext: resourceGiteaOrgActionsSecretCreate,
+		ReadContext:   resourceGiteaOrgActionsSecretRead,
+		UpdateContext: resourceGiteaOrgActionsSecretUpdate,
+		DeleteContext: resourceGiteaOrgActionsSecretDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -154,7 +156,7 @@ func resourceGiteaOrgActionsSecret() *schema.Resource {
 	}
 }
 
-func resourceGiteaOrgActionsSecretCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaOrgActionsSecretCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	org := strings.ToLower(d.Get(actionOrgField).(string))
 	name := d.Get("secret_name").(string)
@@ -163,17 +165,17 @@ func resourceGiteaOrgActionsSecretCreate(d *schema.ResourceData, meta interface{
 		Description: d.Get(descriptionField).(string),
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.SetId(buildTwoPartID(org, name))
-	return resourceGiteaOrgActionsSecretRead(d, meta)
+	return resourceGiteaOrgActionsSecretRead(ctx, d, meta)
 }
 
-func resourceGiteaOrgActionsSecretRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaOrgActionsSecretRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	org, secretName, err := parseTwoPartID(d.Id(), actionOrgField, "secret_name")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	secrets, err := collectPaginated(func(page int) ([]*gitea.Secret, error) {
 		items, _, callErr := client.ListOrgActionSecret(org, gitea.ListOrgActionSecretOption{
@@ -182,7 +184,7 @@ func resourceGiteaOrgActionsSecretRead(d *schema.ResourceData, meta interface{})
 		return items, callErr
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	var secret *gitea.Secret
 	for _, item := range secrets {
@@ -202,7 +204,7 @@ func resourceGiteaOrgActionsSecretRead(d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-func resourceGiteaOrgActionsSecretUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaOrgActionsSecretUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	org := strings.ToLower(d.Get(actionOrgField).(string))
 	name := d.Get("secret_name").(string)
@@ -211,27 +213,27 @@ func resourceGiteaOrgActionsSecretUpdate(d *schema.ResourceData, meta interface{
 		Description: d.Get(descriptionField).(string),
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	return resourceGiteaOrgActionsSecretRead(d, meta)
+	return resourceGiteaOrgActionsSecretRead(ctx, d, meta)
 }
 
-func resourceGiteaOrgActionsSecretDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaOrgActionsSecretDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	org, name, err := parseTwoPartID(d.Id(), actionOrgField, "secret_name")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	_, err = client.DeleteOrgActionSecret(org, name)
-	return err
+	return diag.FromErr(err)
 }
 
 func resourceGiteaUserActionsVariable() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGiteaUserActionsVariableCreate,
-		Read:   resourceGiteaUserActionsVariableRead,
-		Update: resourceGiteaUserActionsVariableUpdate,
-		Delete: resourceGiteaUserActionsVariableDelete,
+		CreateContext: resourceGiteaUserActionsVariableCreate,
+		ReadContext:   resourceGiteaUserActionsVariableRead,
+		UpdateContext: resourceGiteaUserActionsVariableUpdate,
+		DeleteContext: resourceGiteaUserActionsVariableDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -258,7 +260,7 @@ func resourceGiteaUserActionsVariable() *schema.Resource {
 	}
 }
 
-func resourceGiteaUserActionsVariableCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaUserActionsVariableCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	name := d.Get("variable_name").(string)
 	_, err := client.CreateUserActionVariable(name, gitea.CreateActionVariableOption{
@@ -266,13 +268,13 @@ func resourceGiteaUserActionsVariableCreate(d *schema.ResourceData, meta interfa
 		Description: d.Get(descriptionField).(string),
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.SetId(name)
-	return resourceGiteaUserActionsVariableRead(d, meta)
+	return resourceGiteaUserActionsVariableRead(ctx, d, meta)
 }
 
-func resourceGiteaUserActionsVariableRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaUserActionsVariableRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	variable, resp, err := client.GetUserActionVariable(d.Id())
 	if err != nil {
@@ -280,7 +282,7 @@ func resourceGiteaUserActionsVariableRead(d *schema.ResourceData, meta interface
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 	d.Set("variable_name", variable.Name)
 	d.Set("value", variable.Data)
@@ -288,7 +290,7 @@ func resourceGiteaUserActionsVariableRead(d *schema.ResourceData, meta interface
 	return nil
 }
 
-func resourceGiteaUserActionsVariableUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaUserActionsVariableUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	name := d.Get("variable_name").(string)
 	_, err := client.UpdateUserActionVariable(name, gitea.UpdateActionVariableOption{
@@ -297,23 +299,23 @@ func resourceGiteaUserActionsVariableUpdate(d *schema.ResourceData, meta interfa
 		Description: d.Get(descriptionField).(string),
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	return resourceGiteaUserActionsVariableRead(d, meta)
+	return resourceGiteaUserActionsVariableRead(ctx, d, meta)
 }
 
-func resourceGiteaUserActionsVariableDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaUserActionsVariableDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	_, err := client.DeleteUserActionVariable(d.Id())
-	return err
+	return diag.FromErr(err)
 }
 
 func resourceGiteaUserActionsSecret() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGiteaUserActionsSecretCreate,
-		Read:   resourceGiteaUserActionsSecretRead,
-		Update: resourceGiteaUserActionsSecretUpdate,
-		Delete: resourceGiteaUserActionsSecretDelete,
+		CreateContext: resourceGiteaUserActionsSecretCreate,
+		ReadContext:   resourceGiteaUserActionsSecretRead,
+		UpdateContext: resourceGiteaUserActionsSecretUpdate,
+		DeleteContext: resourceGiteaUserActionsSecretDelete,
 		Schema: map[string]*schema.Schema{
 			"secret_name": {
 				Type:        schema.TypeString,
@@ -341,7 +343,7 @@ func resourceGiteaUserActionsSecret() *schema.Resource {
 	}
 }
 
-func resourceGiteaUserActionsSecretCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaUserActionsSecretCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	name := d.Get("secret_name").(string)
 	_, err := client.CreateUserActionSecret(name, gitea.CreateOrUpdateSecretOption{
@@ -349,19 +351,19 @@ func resourceGiteaUserActionsSecretCreate(d *schema.ResourceData, meta interface
 		Description: d.Get(descriptionField).(string),
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	d.SetId(name)
-	return resourceGiteaUserActionsSecretRead(d, meta)
+	return resourceGiteaUserActionsSecretRead(ctx, d, meta)
 }
 
-func resourceGiteaUserActionsSecretRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaUserActionsSecretRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	d.Set("secret_name", d.Get("secret_name").(string))
 	d.Set(descriptionField, d.Get(descriptionField).(string))
 	return nil
 }
 
-func resourceGiteaUserActionsSecretUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaUserActionsSecretUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	name := d.Get("secret_name").(string)
 	_, err := client.CreateUserActionSecret(name, gitea.CreateOrUpdateSecretOption{
@@ -369,13 +371,13 @@ func resourceGiteaUserActionsSecretUpdate(d *schema.ResourceData, meta interface
 		Description: d.Get(descriptionField).(string),
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	return resourceGiteaUserActionsSecretRead(d, meta)
+	return resourceGiteaUserActionsSecretRead(ctx, d, meta)
 }
 
-func resourceGiteaUserActionsSecretDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaUserActionsSecretDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	_, err := client.DeleteUserActionSecret(d.Id())
-	return err
+	return diag.FromErr(err)
 }

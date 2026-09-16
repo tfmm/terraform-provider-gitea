@@ -1,18 +1,20 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGiteaRepositoryWebhook() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaRepositoryWebhookRead,
+		ReadContext: dataSourceGiteaRepositoryWebhookRead,
 
 		Schema: map[string]*schema.Schema{
 			"username": {
@@ -116,7 +118,7 @@ func dataSourceGiteaRepositoryWebhook() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaRepositoryWebhookRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaRepositoryWebhookRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	owner := strings.ToLower(d.Get("username").(string))
@@ -126,9 +128,9 @@ func dataSourceGiteaRepositoryWebhookRead(d *schema.ResourceData, meta interface
 	hook, resp, err := client.GetRepoHook(owner, repo, id)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("webhook with id %d not found for repo %s/%s", id, owner, repo)
+			return diag.FromErr(fmt.Errorf("webhook with id %d not found for repo %s/%s", id, owner, repo))
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(hook.ID, 10))

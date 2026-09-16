@@ -6,10 +6,11 @@ import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceRepositoryTagRead(d *schema.ResourceData, meta interface{}) error {
+func resourceRepositoryTagRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
@@ -21,7 +22,7 @@ func resourceRepositoryTagRead(d *schema.ResourceData, meta interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.Set("name", tag.Name)
@@ -31,7 +32,7 @@ func resourceRepositoryTagRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceRepositoryTagCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceRepositoryTagCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
@@ -45,28 +46,28 @@ func resourceRepositoryTagCreate(d *schema.ResourceData, meta interface{}) error
 
 	_, _, err := client.CreateTag(user, repo, opts)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s/%s", user, repo, name))
-	return resourceRepositoryTagRead(d, meta)
+	return resourceRepositoryTagRead(ctx, d, meta)
 }
 
-func resourceRepositoryTagDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceRepositoryTagDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
 	name := d.Get("name").(string)
 
 	_, err := client.DeleteTag(user, repo, name)
-	return err
+	return diag.FromErr(err)
 }
 
 func resourceGiteaRepositoryTag() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceRepositoryTagRead,
-		Create: resourceRepositoryTagCreate,
-		Delete: resourceRepositoryTagDelete,
+		ReadContext:   resourceRepositoryTagRead,
+		CreateContext: resourceRepositoryTagCreate,
+		DeleteContext: resourceRepositoryTagDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")

@@ -1,11 +1,13 @@
 package gitea
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -70,7 +72,8 @@ func searchTokenById(c *gitea.Client, id int64) (res *gitea.AccessToken, err err
 	}
 }
 
-func resourceTokenCreate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceTokenCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 
 	client := meta.(*gitea.Client)
 
@@ -81,7 +84,7 @@ func resourceTokenCreate(d *schema.ResourceData, meta interface{}) (err error) {
 		if validScopes[s] {
 			scopes = append(scopes, gitea.AccessTokenScope(s))
 		} else {
-			return fmt.Errorf("Invalid token scope: '%s'", s)
+			return diag.FromErr(fmt.Errorf("Invalid token scope: '%s'", s))
 		}
 	}
 
@@ -93,15 +96,16 @@ func resourceTokenCreate(d *schema.ResourceData, meta interface{}) (err error) {
 	token, _, err := client.CreateAccessToken(opts)
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setTokenResourceData(token, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceTokenRead(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceTokenRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 
 	client := meta.(*gitea.Client)
 
@@ -109,7 +113,7 @@ func resourceTokenRead(d *schema.ResourceData, meta interface{}) (err error) {
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	token, err = searchTokenById(client, id)
@@ -119,15 +123,16 @@ func resourceTokenRead(d *schema.ResourceData, meta interface{}) (err error) {
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setTokenResourceData(token, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceTokenDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceTokenDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 
 	client := meta.(*gitea.Client)
 	var resp *gitea.Response
@@ -140,13 +145,13 @@ func resourceTokenDelete(d *schema.ResourceData, meta interface{}) (err error) {
 
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
-			return
+			return diag.FromErr(err)
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
-	return
+	return diag.FromErr(err)
 }
 
 func setTokenResourceData(token *gitea.AccessToken, d *schema.ResourceData) (err error) {
@@ -164,9 +169,9 @@ func setTokenResourceData(token *gitea.AccessToken, d *schema.ResourceData) (err
 
 func resourceGiteaToken() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceTokenRead,
-		Create: resourceTokenCreate,
-		Delete: resourceTokenDelete,
+		ReadContext:   resourceTokenRead,
+		CreateContext: resourceTokenCreate,
+		DeleteContext: resourceTokenDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

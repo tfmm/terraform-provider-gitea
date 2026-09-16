@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -34,7 +35,8 @@ func parseTeamMembershipID(id string) (teamID int, username string, err error) {
 	return int(teamID64), parts[1], nil
 }
 
-func resourceTeamMembershipCreate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceTeamMembershipCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	team_id := d.Get(membershipTeamID).(int)
@@ -46,22 +48,23 @@ func resourceTeamMembershipCreate(d *schema.ResourceData, meta interface{}) (err
 	// What if the membership exists? Consider error messages
 	// Does this do anything? Will err not be return in the end anyway
 	if err != nil {
-		return
+		return diag.FromErr(err)
 	}
 
 	err = setTeamMembershipData(team_id, username, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceTeamMembershipRead(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceTeamMembershipRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	var resp *gitea.Response
 
 	team_id, username, err := parseTeamMembershipID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// Attempt to get the user from the team. If the user is not a member of the team, this will return a 404
@@ -71,7 +74,7 @@ func resourceTeamMembershipRead(d *schema.ResourceData, meta interface{}) (err e
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	// The membership does not exist in Gitea
@@ -83,15 +86,16 @@ func resourceTeamMembershipRead(d *schema.ResourceData, meta interface{}) (err e
 
 	err = setTeamMembershipData(team_id, username, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceTeamMembershipDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceTeamMembershipDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	team_id, username, err := parseTeamMembershipID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// Delete the membership
@@ -102,10 +106,10 @@ func resourceTeamMembershipDelete(d *schema.ResourceData, meta interface{}) (err
 		if resp != nil && resp.StatusCode == 404 {
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
-	return
+	return diag.FromErr(err)
 }
 
 func setTeamMembershipData(team_id int, username string, d *schema.ResourceData) (err error) {
@@ -120,9 +124,9 @@ func setTeamMembershipData(team_id int, username string, d *schema.ResourceData)
 
 func resourceGiteaTeamMembership() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceTeamMembershipRead,
-		Create: resourceTeamMembershipCreate,
-		Delete: resourceTeamMembershipDelete,
+		ReadContext:   resourceTeamMembershipRead,
+		CreateContext: resourceTeamMembershipCreate,
+		DeleteContext: resourceTeamMembershipDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				teamID, username, err := parseTeamMembershipID(d.Id())

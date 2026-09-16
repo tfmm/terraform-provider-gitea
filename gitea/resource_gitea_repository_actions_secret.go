@@ -1,19 +1,21 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceGiteaRepositoryActionsSecret() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGiteaRepositoryActionsSecretCreate,
-		Read:   resourceGiteaRepositoryActionsSecretRead,
-		Update: resourceGiteaRepositoryActionsSecretUpdate,
-		Delete: resourceGiteaRepositoryActionsSecretDelete,
+		CreateContext: resourceGiteaRepositoryActionsSecretCreate,
+		ReadContext:   resourceGiteaRepositoryActionsSecretRead,
+		UpdateContext: resourceGiteaRepositoryActionsSecretUpdate,
+		DeleteContext: resourceGiteaRepositoryActionsSecretDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -57,30 +59,30 @@ func resourceGiteaRepositoryActionsSecret() *schema.Resource {
 	}
 }
 
-func resourceGiteaRepositoryActionsSecretCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaRepositoryActionsSecretCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	repoOwnerData, usernameOk := d.GetOk("repository_owner")
 	if !usernameOk {
-		return fmt.Errorf("name of repo owner must be passed")
+		return diag.FromErr(fmt.Errorf("name of repo owner must be passed"))
 	}
 	repoOwner := strings.ToLower(repoOwnerData.(string))
 
 	repositoryData, nameOk := d.GetOk("repository")
 	if !nameOk {
-		return fmt.Errorf("CREATE name of repo must be passed")
+		return diag.FromErr(fmt.Errorf("CREATE name of repo must be passed"))
 	}
 	repository := strings.ToLower(repositoryData.(string))
 
 	secretNameData, nameOk := d.GetOk("secret_name")
 	if !nameOk {
-		return fmt.Errorf("secret_name must be passed")
+		return diag.FromErr(fmt.Errorf("secret_name must be passed"))
 	}
 	secretName := secretNameData.(string)
 
 	valueData, nameOk := d.GetOk("secret_value")
 	if !nameOk {
-		return fmt.Errorf("value must be passed")
+		return diag.FromErr(fmt.Errorf("value must be passed"))
 	}
 	value := valueData.(string)
 
@@ -88,38 +90,38 @@ func resourceGiteaRepositoryActionsSecretCreate(d *schema.ResourceData, meta int
 		Data: value,
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(buildThreePartID(repoOwner, repository, secretName))
 
-	return resourceGiteaRepositoryActionsSecretRead(d, meta)
+	return resourceGiteaRepositoryActionsSecretRead(ctx, d, meta)
 }
 
-func resourceGiteaRepositoryActionsSecretUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaRepositoryActionsSecretUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	repoOwnerData, usernameOk := d.GetOk("repository_owner")
 	if !usernameOk {
-		return fmt.Errorf("name of repo owner must be passed")
+		return diag.FromErr(fmt.Errorf("name of repo owner must be passed"))
 	}
 	repoOwner := strings.ToLower(repoOwnerData.(string))
 
 	repositoryData, nameOk := d.GetOk("repository")
 	if !nameOk {
-		return fmt.Errorf("name of repo must be passed")
+		return diag.FromErr(fmt.Errorf("name of repo must be passed"))
 	}
 	repository := strings.ToLower(repositoryData.(string))
 
 	variableNameData, nameOk := d.GetOk("secret_name")
 	if !nameOk {
-		return fmt.Errorf("secret_name of repo must be passed")
+		return diag.FromErr(fmt.Errorf("secret_name of repo must be passed"))
 	}
 	variableName := variableNameData.(string)
 
 	valueData, nameOk := d.GetOk("secret_value")
 	if !nameOk {
-		return fmt.Errorf("secret_value must be passed")
+		return diag.FromErr(fmt.Errorf("secret_value must be passed"))
 	}
 	value := valueData.(string)
 
@@ -127,18 +129,18 @@ func resourceGiteaRepositoryActionsSecretUpdate(d *schema.ResourceData, meta int
 		Data: value,
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceGiteaRepositoryActionsSecretRead(d, meta)
+	return resourceGiteaRepositoryActionsSecretRead(ctx, d, meta)
 }
 
-func resourceGiteaRepositoryActionsSecretRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaRepositoryActionsSecretRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	repoOwner, repository, secretName, err := parseThreePartID(d.Id(), "repository_owner", "repository", "secret_name")
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	var notFound bool
@@ -159,7 +161,7 @@ func resourceGiteaRepositoryActionsSecretRead(d *schema.ResourceData, meta inter
 		return nil
 	}
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	var requestedSecret *gitea.Secret
@@ -185,30 +187,30 @@ func resourceGiteaRepositoryActionsSecretRead(d *schema.ResourceData, meta inter
 	}
 
 	if err := d.Set("repository_owner", repoOwner); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("repository", repository); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("secret_name", secretName); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("created_at", requestedSecret.Created.String()); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func resourceGiteaRepositoryActionsSecretDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaRepositoryActionsSecretDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	repoOwner, repository, secretName, _ := parseThreePartID(d.Id(), "repository_owner", "repository", "secret_name")
 
 	_, err := client.DeleteRepoActionSecret(repoOwner, repository, secretName)
 
-	return err
+	return diag.FromErr(err)
 }

@@ -1,16 +1,18 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGiteaLabel() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaLabelRead,
+		ReadContext: dataSourceGiteaLabelRead,
 		Schema: map[string]*schema.Schema{
 			"id": {
 				Type:        schema.TypeInt,
@@ -62,7 +64,7 @@ func dataSourceGiteaLabel() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaLabelRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaLabelRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	id := int64(d.Get("id").(int))
 
@@ -78,7 +80,7 @@ func dataSourceGiteaLabelRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(label.ID, 10))
@@ -92,7 +94,7 @@ func dataSourceGiteaLabelRead(d *schema.ResourceData, meta interface{}) error {
 
 func dataSourceGiteaLabels() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaLabelsRead,
+		ReadContext: dataSourceGiteaLabelsRead,
 		Schema: map[string]*schema.Schema{
 			"org": {
 				Type:          schema.TypeString,
@@ -147,7 +149,7 @@ func dataSourceGiteaLabels() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaLabelsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaLabelsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	var labels []*gitea.Label
@@ -164,7 +166,7 @@ func dataSourceGiteaLabelsRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	result := make([]map[string]interface{}, 0, len(labels))

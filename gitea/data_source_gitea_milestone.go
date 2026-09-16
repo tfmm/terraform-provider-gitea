@@ -1,17 +1,19 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"time"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGiteaMilestone() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaMilestoneRead,
+		ReadContext: dataSourceGiteaMilestoneRead,
 		Schema: map[string]*schema.Schema{
 			"user": {
 				Type:        schema.TypeString,
@@ -63,7 +65,7 @@ func dataSourceGiteaMilestone() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaMilestoneRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaMilestoneRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
@@ -71,7 +73,7 @@ func dataSourceGiteaMilestoneRead(d *schema.ResourceData, meta interface{}) erro
 
 	milestone, _, err := client.GetMilestone(user, repo, id)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(milestone.ID, 10))
@@ -90,7 +92,7 @@ func dataSourceGiteaMilestoneRead(d *schema.ResourceData, meta interface{}) erro
 
 func dataSourceGiteaMilestones() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaMilestonesRead,
+		ReadContext: dataSourceGiteaMilestonesRead,
 		Schema: map[string]*schema.Schema{
 			"user": {
 				Type:        schema.TypeString,
@@ -145,7 +147,7 @@ func dataSourceGiteaMilestones() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaMilestonesRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaMilestonesRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
@@ -155,7 +157,7 @@ func dataSourceGiteaMilestonesRead(d *schema.ResourceData, meta interface{}) err
 		State: gitea.StateType(state),
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	result := make([]map[string]interface{}, 0, len(milestones))

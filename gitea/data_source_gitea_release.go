@@ -1,16 +1,18 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGiteaRelease() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaReleaseRead,
+		ReadContext: dataSourceGiteaReleaseRead,
 		Schema: map[string]*schema.Schema{
 			"user": {
 				Type:        schema.TypeString,
@@ -62,7 +64,7 @@ func dataSourceGiteaRelease() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaReleaseRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaReleaseRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
@@ -70,7 +72,7 @@ func dataSourceGiteaReleaseRead(d *schema.ResourceData, meta interface{}) error 
 
 	release, _, err := client.GetRelease(user, repo, id)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(release.ID, 10))
@@ -86,7 +88,7 @@ func dataSourceGiteaReleaseRead(d *schema.ResourceData, meta interface{}) error 
 
 func dataSourceGiteaReleases() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaReleasesRead,
+		ReadContext: dataSourceGiteaReleasesRead,
 		Schema: map[string]*schema.Schema{
 			"user": {
 				Type:        schema.TypeString,
@@ -135,14 +137,14 @@ func dataSourceGiteaReleases() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaReleasesRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaReleasesRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
 
 	releases, _, err := client.ListReleases(user, repo, gitea.ListReleasesOptions{})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	result := make([]map[string]interface{}, 0, len(releases))

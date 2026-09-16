@@ -7,14 +7,15 @@ import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceLabelRead(d *schema.ResourceData, meta interface{}) error {
+func resourceLabelRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	var label *gitea.Label
@@ -33,7 +34,7 @@ func resourceLabelRead(d *schema.ResourceData, meta interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.Set("name", label.Name)
@@ -44,7 +45,7 @@ func resourceLabelRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceLabelCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceLabelCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	color := strings.TrimPrefix(d.Get("color").(string), "#")
@@ -76,18 +77,18 @@ func resourceLabelCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(label.ID, 10))
-	return resourceLabelRead(d, meta)
+	return resourceLabelRead(ctx, d, meta)
 }
 
-func resourceLabelUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceLabelUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	name := d.Get("name").(string)
@@ -116,17 +117,17 @@ func resourceLabelUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceLabelRead(d, meta)
+	return resourceLabelRead(ctx, d, meta)
 }
 
-func resourceLabelDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceLabelDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if org, ok := d.GetOk("org"); ok && org.(string) != "" {
@@ -137,15 +138,15 @@ func resourceLabelDelete(d *schema.ResourceData, meta interface{}) error {
 		_, err = client.DeleteLabel(user, repo, id)
 	}
 
-	return err
+	return diag.FromErr(err)
 }
 
 func resourceGiteaLabel() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceLabelRead,
-		Create: resourceLabelCreate,
-		Update: resourceLabelUpdate,
-		Delete: resourceLabelDelete,
+		ReadContext:   resourceLabelRead,
+		CreateContext: resourceLabelCreate,
+		UpdateContext: resourceLabelUpdate,
+		DeleteContext: resourceLabelDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")

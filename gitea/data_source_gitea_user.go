@@ -1,17 +1,19 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGiteaUser() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaUserRead,
+		ReadContext: dataSourceGiteaUserRead,
 		Schema: map[string]*schema.Schema{
 			"id": {
 				Type:     schema.TypeInt,
@@ -55,7 +57,7 @@ func dataSourceGiteaUser() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaUserRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaUserRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	var user *gitea.User
@@ -68,14 +70,14 @@ func dataSourceGiteaUserRead(d *schema.ResourceData, meta interface{}) error {
 	if !usernameOk {
 		user, _, err = client.GetMyUserInfo()
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	} else {
 		username := strings.ToLower(usernameData.(string))
 
 		user, _, err = client.GetUserInfo(username)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 

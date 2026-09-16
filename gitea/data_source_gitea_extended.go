@@ -1,17 +1,19 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGiteaRepositoryFiles() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaRepositoryFilesRead,
+		ReadContext: dataSourceGiteaRepositoryFilesRead,
 		Schema: mergeSchemaMaps(repositoryIdentitySchema(), map[string]*schema.Schema{
 			"branch": {
 				Type:        schema.TypeString,
@@ -61,7 +63,7 @@ func dataSourceGiteaRepositoryFiles() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaRepositoryFilesRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaRepositoryFilesRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	owner := strings.ToLower(d.Get(repositoryOwnerField).(string))
 	repo := strings.ToLower(d.Get(repositoryNameField).(string))
@@ -75,11 +77,11 @@ func dataSourceGiteaRepositoryFilesRead(d *schema.ResourceData, meta interface{}
 
 	files, _, err := client.PostRepoFileContents(owner, repo, branch, gitea.GetFilesOptions{Files: paths})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("files", flattenContents(files)); err != nil {
-		return fmt.Errorf("error setting files: %w", err)
+		return diag.FromErr(fmt.Errorf("error setting files: %w", err))
 	}
 	d.SetId(buildResourceID(owner, repo, branch, strings.Join(copyAndSortStrings(paths), "|")))
 	return nil
@@ -87,7 +89,7 @@ func dataSourceGiteaRepositoryFilesRead(d *schema.ResourceData, meta interface{}
 
 func dataSourceGiteaPackageVersions() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaPackageVersionsRead,
+		ReadContext: dataSourceGiteaPackageVersionsRead,
 		Schema: map[string]*schema.Schema{
 			"owner": {
 				Type:        schema.TypeString,
@@ -130,7 +132,7 @@ func dataSourceGiteaPackageVersions() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaPackageVersionsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaPackageVersionsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	owner := d.Get("owner").(string)
 	packageType := d.Get("package_type").(string)
@@ -143,11 +145,11 @@ func dataSourceGiteaPackageVersionsRead(d *schema.ResourceData, meta interface{}
 		return items, callErr
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("versions", flattenPackageVersions(packages)); err != nil {
-		return fmt.Errorf("error setting versions: %w", err)
+		return diag.FromErr(fmt.Errorf("error setting versions: %w", err))
 	}
 	d.SetId(buildResourceID(owner, packageType, name))
 	return nil
@@ -155,7 +157,7 @@ func dataSourceGiteaPackageVersionsRead(d *schema.ResourceData, meta interface{}
 
 func dataSourceGiteaRepositoryIssueConfig() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaRepositoryIssueConfigRead,
+		ReadContext: dataSourceGiteaRepositoryIssueConfigRead,
 		Schema: mergeSchemaMaps(repositoryIdentitySchema(), map[string]*schema.Schema{
 			"blank_issues_enabled": {
 				Type:        schema.TypeBool,
@@ -189,23 +191,23 @@ func dataSourceGiteaRepositoryIssueConfig() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaRepositoryIssueConfigRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaRepositoryIssueConfigRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	owner := strings.ToLower(d.Get(repositoryOwnerField).(string))
 	repo := strings.ToLower(d.Get(repositoryNameField).(string))
 
 	config, _, err := client.GetIssueConfig(owner, repo)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	validation, _, err := client.ValidateIssueConfig(owner, repo)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.Set("blank_issues_enabled", config.BlankIssuesEnabled)
 	if err := d.Set("contact_links", flattenContactLinks(config.ContactLinks)); err != nil {
-		return fmt.Errorf("error setting contact_links: %w", err)
+		return diag.FromErr(fmt.Errorf("error setting contact_links: %w", err))
 	}
 	d.Set("valid", validation.Valid)
 	d.Set("validation_message", validation.Message)
@@ -215,7 +217,7 @@ func dataSourceGiteaRepositoryIssueConfigRead(d *schema.ResourceData, meta inter
 
 func dataSourceGiteaRepositoryLicenses() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaRepositoryLicensesRead,
+		ReadContext: dataSourceGiteaRepositoryLicensesRead,
 		Schema: mergeSchemaMaps(repositoryIdentitySchema(), map[string]*schema.Schema{
 			"licenses": {
 				Type:        schema.TypeList,
@@ -228,16 +230,16 @@ func dataSourceGiteaRepositoryLicenses() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaRepositoryLicensesRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaRepositoryLicensesRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	owner := strings.ToLower(d.Get(repositoryOwnerField).(string))
 	repo := strings.ToLower(d.Get(repositoryNameField).(string))
 	licenses, _, err := client.GetRepoLicenses(owner, repo)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("licenses", copyAndSortStrings(licenses)); err != nil {
-		return fmt.Errorf("error setting licenses: %w", err)
+		return diag.FromErr(fmt.Errorf("error setting licenses: %w", err))
 	}
 	d.SetId(buildResourceID(owner, repo))
 	return nil
@@ -245,7 +247,7 @@ func dataSourceGiteaRepositoryLicensesRead(d *schema.ResourceData, meta interfac
 
 func dataSourceGiteaRepositorySigningKey() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaRepositorySigningKeyRead,
+		ReadContext: dataSourceGiteaRepositorySigningKeyRead,
 		Schema: mergeSchemaMaps(repositoryIdentitySchema(), map[string]*schema.Schema{
 			"gpg_public_key": {
 				Type:        schema.TypeString,
@@ -262,18 +264,18 @@ func dataSourceGiteaRepositorySigningKey() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaRepositorySigningKeyRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaRepositorySigningKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	owner := strings.ToLower(d.Get(repositoryOwnerField).(string))
 	repo := strings.ToLower(d.Get(repositoryNameField).(string))
 
 	gpgKey, gpgResp, gpgErr := client.GetRepoSigningKeyGPG(owner, repo)
 	if gpgErr != nil && (gpgResp == nil || gpgResp.StatusCode != http.StatusNotFound) {
-		return gpgErr
+		return diag.FromErr(gpgErr)
 	}
 	sshKey, sshResp, sshErr := client.GetRepoSigningKeySSH(owner, repo)
 	if sshErr != nil && (sshResp == nil || sshResp.StatusCode != http.StatusNotFound) {
-		return sshErr
+		return diag.FromErr(sshErr)
 	}
 
 	d.Set("gpg_public_key", strings.TrimSpace(gpgKey))
@@ -284,7 +286,7 @@ func dataSourceGiteaRepositorySigningKeyRead(d *schema.ResourceData, meta interf
 
 func dataSourceGiteaRepositorySubscribers() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaRepositorySubscribersRead,
+		ReadContext: dataSourceGiteaRepositorySubscribersRead,
 		Schema: mergeSchemaMaps(repositoryIdentitySchema(), map[string]*schema.Schema{
 			"subscribers": {
 				Type:        schema.TypeList,
@@ -305,7 +307,7 @@ func dataSourceGiteaRepositorySubscribers() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaRepositorySubscribersRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaRepositorySubscribersRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	owner := strings.ToLower(d.Get(repositoryOwnerField).(string))
 	repo := strings.ToLower(d.Get(repositoryNameField).(string))
@@ -315,11 +317,11 @@ func dataSourceGiteaRepositorySubscribersRead(d *schema.ResourceData, meta inter
 		return items, callErr
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("subscribers", flattenUsers(subscribers)); err != nil {
-		return fmt.Errorf("error setting subscribers: %w", err)
+		return diag.FromErr(fmt.Errorf("error setting subscribers: %w", err))
 	}
 	d.SetId(buildResourceID(owner, repo))
 	return nil
@@ -327,7 +329,7 @@ func dataSourceGiteaRepositorySubscribersRead(d *schema.ResourceData, meta inter
 
 func dataSourceGiteaTeamRepository() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaTeamRepositoryRead,
+		ReadContext: dataSourceGiteaTeamRepositoryRead,
 		Schema: mergeSchemaMaps(repositoryIdentitySchema(), map[string]*schema.Schema{
 			"team_id": {
 				Type:        schema.TypeInt,
@@ -360,7 +362,7 @@ func dataSourceGiteaTeamRepository() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaTeamRepositoryRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaTeamRepositoryRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	teamID := int64(d.Get("team_id").(int))
 	owner := strings.ToLower(d.Get(repositoryOwnerField).(string))
@@ -368,9 +370,9 @@ func dataSourceGiteaTeamRepositoryRead(d *schema.ResourceData, meta interface{})
 	repo, resp, err := client.GetTeamRepository(teamID, owner, repoName)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("repository %s/%s is not attached to team %d", owner, repoName, teamID)
+			return diag.FromErr(fmt.Errorf("repository %s/%s is not attached to team %d", owner, repoName, teamID))
 		}
-		return err
+		return diag.FromErr(err)
 	}
 	d.Set("id", int(repo.ID))
 	d.Set("full_name", repo.FullName)
@@ -383,7 +385,7 @@ func dataSourceGiteaTeamRepositoryRead(d *schema.ResourceData, meta interface{})
 
 func dataSourceGiteaPullRequestByBaseHead() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaPullRequestByBaseHeadRead,
+		ReadContext: dataSourceGiteaPullRequestByBaseHeadRead,
 		Schema: mergeSchemaMaps(repositoryIdentitySchema(), map[string]*schema.Schema{
 			"base_ref": {
 				Type:        schema.TypeString,
@@ -432,7 +434,7 @@ func dataSourceGiteaPullRequestByBaseHead() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaPullRequestByBaseHeadRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaPullRequestByBaseHeadRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	owner := strings.ToLower(d.Get(repositoryOwnerField).(string))
 	repo := strings.ToLower(d.Get(repositoryNameField).(string))
@@ -441,11 +443,11 @@ func dataSourceGiteaPullRequestByBaseHeadRead(d *schema.ResourceData, meta inter
 
 	pr, _, err := client.GetPullRequestByBaseHead(owner, repo, baseRef, headRef)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("pull_request", []interface{}{flattenPullRequest(pr)}); err != nil {
-		return fmt.Errorf("error setting pull_request: %w", err)
+		return diag.FromErr(fmt.Errorf("error setting pull_request: %w", err))
 	}
 	d.SetId(buildResourceID(owner, repo, baseRef, headRef))
 	return nil

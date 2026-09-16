@@ -6,10 +6,11 @@ import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceRepositoryTopicsRead(d *schema.ResourceData, meta interface{}) error {
+func resourceRepositoryTopicsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	user := d.Get("user").(string)
 	repoName := d.Get("repo").(string)
@@ -20,14 +21,14 @@ func resourceRepositoryTopicsRead(d *schema.ResourceData, meta interface{}) erro
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.Set("topics", repo.Topics)
 	return nil
 }
 
-func resourceRepositoryTopicsCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceRepositoryTopicsCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	user := d.Get("user").(string)
 	repoName := d.Get("repo").(string)
@@ -40,32 +41,32 @@ func resourceRepositoryTopicsCreate(d *schema.ResourceData, meta interface{}) er
 
 	_, err := client.SetRepoTopics(user, repoName, topics)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s", user, repoName))
-	return resourceRepositoryTopicsRead(d, meta)
+	return resourceRepositoryTopicsRead(ctx, d, meta)
 }
 
-func resourceRepositoryTopicsUpdate(d *schema.ResourceData, meta interface{}) error {
-	return resourceRepositoryTopicsCreate(d, meta)
+func resourceRepositoryTopicsUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	return resourceRepositoryTopicsCreate(ctx, d, meta)
 }
 
-func resourceRepositoryTopicsDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceRepositoryTopicsDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	user := d.Get("user").(string)
 	repoName := d.Get("repo").(string)
 
 	_, err := client.SetRepoTopics(user, repoName, []string{})
-	return err
+	return diag.FromErr(err)
 }
 
 func resourceGiteaRepositoryTopics() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceRepositoryTopicsRead,
-		Create: resourceRepositoryTopicsCreate,
-		Update: resourceRepositoryTopicsUpdate,
-		Delete: resourceRepositoryTopicsDelete,
+		ReadContext:   resourceRepositoryTopicsRead,
+		CreateContext: resourceRepositoryTopicsCreate,
+		UpdateContext: resourceRepositoryTopicsUpdate,
+		DeleteContext: resourceRepositoryTopicsDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")

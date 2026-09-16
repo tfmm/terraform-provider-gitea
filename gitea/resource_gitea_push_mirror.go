@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -37,7 +38,7 @@ func resourceGiteaPushMirrorImport(ctx context.Context, d *schema.ResourceData, 
 	return []*schema.ResourceData{d}, nil
 }
 
-func resourceGiteaPushMirrorCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaPushMirrorCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	owner := d.Get("owner").(string)
@@ -53,19 +54,19 @@ func resourceGiteaPushMirrorCreate(d *schema.ResourceData, meta interface{}) err
 
 	pm, _, err := client.PushMirrors(owner, repo, opt)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(buildThreePartID(owner, repo, pm.RemoteName))
-	return resourceGiteaPushMirrorRead(d, meta)
+	return resourceGiteaPushMirrorRead(ctx, d, meta)
 }
 
-func resourceGiteaPushMirrorRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaPushMirrorRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	owner, repo, remoteName, err := parsePushMirrorID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	pm, resp, err := client.GetPushMirrorByRemoteName(owner, repo, remoteName)
@@ -74,7 +75,7 @@ func resourceGiteaPushMirrorRead(d *schema.ResourceData, meta interface{}) error
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if pm == nil {
@@ -96,12 +97,12 @@ func resourceGiteaPushMirrorRead(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func resourceGiteaPushMirrorDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaPushMirrorDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	owner, repo, remoteName, err := parsePushMirrorID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	resp, err := client.DeletePushMirror(owner, repo, remoteName)
@@ -109,7 +110,7 @@ func resourceGiteaPushMirrorDelete(d *schema.ResourceData, meta interface{}) err
 		if resp != nil && resp.StatusCode == 404 {
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
@@ -117,9 +118,9 @@ func resourceGiteaPushMirrorDelete(d *schema.ResourceData, meta interface{}) err
 
 func resourceGiteaPushMirror() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGiteaPushMirrorCreate,
-		Read:   resourceGiteaPushMirrorRead,
-		Delete: resourceGiteaPushMirrorDelete,
+		CreateContext: resourceGiteaPushMirrorCreate,
+		ReadContext:   resourceGiteaPushMirrorRead,
+		DeleteContext: resourceGiteaPushMirrorDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceGiteaPushMirrorImport,
 		},

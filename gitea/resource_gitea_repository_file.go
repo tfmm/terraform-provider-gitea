@@ -1,6 +1,7 @@
 package gitea
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -57,25 +59,26 @@ func parseRepositoryFileID(id string) (owner, repo, branch, filePath string, err
 	return owner, repo, branch, filePath, nil
 }
 
-func resourceRepositoryFileRead(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepositoryFileRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	username, name, branch, filePath, err := parseRepositoryFileID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if err := d.Set("username", username); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("name", name); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("branch", branch); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if err := d.Set("file_path", filePath); err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// Get current file metadata and contents
@@ -85,7 +88,7 @@ func resourceRepositoryFileRead(d *schema.ResourceData, meta interface{}) (err e
 			d.SetId("")
 			return nil
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
@@ -95,10 +98,10 @@ func resourceRepositoryFileRead(d *schema.ResourceData, meta interface{}) (err e
 	if content.LastCommitSha != nil && *content.LastCommitSha != "" {
 		commit, resp, err := client.GetSingleCommit(username, name, *content.LastCommitSha)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		if resp != nil && resp.StatusCode != 200 {
-			return fmt.Errorf("error getting commit from repository: %s", resp.Status)
+			return diag.FromErr(fmt.Errorf("error getting commit from repository: %s", resp.Status))
 		}
 
 		// Prefer committer/author date; CommitMeta.Created is often zero
@@ -135,26 +138,27 @@ func resourceRepositoryFileRead(d *schema.ResourceData, meta interface{}) (err e
 	}
 	err = setRepositoryFileResourceData(result, d)
 
-	return
+	return diag.FromErr(err)
 }
-func resourceRepositoryFileCreate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepositoryFileCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	usernameData, usernameOk := d.GetOk("username")
 	if !usernameOk {
-		return fmt.Errorf("name of repo owner must be passed")
+		return diag.FromErr(fmt.Errorf("name of repo owner must be passed"))
 	}
 	username := strings.ToLower(usernameData.(string))
 
 	nameData, nameOk := d.GetOk("name")
 	if !nameOk {
-		return fmt.Errorf("name of repo must be passed")
+		return diag.FromErr(fmt.Errorf("name of repo must be passed"))
 	}
 	name := strings.ToLower(nameData.(string))
 
 	filePathData, filePathOk := d.GetOk("file_path")
 	if !filePathOk {
-		return fmt.Errorf("file path must be passed")
+		return diag.FromErr(fmt.Errorf("file path must be passed"))
 	}
 	filePath := strings.TrimPrefix(filePathData.(string), "/")
 
@@ -166,7 +170,7 @@ func resourceRepositoryFileCreate(d *schema.ResourceData, meta interface{}) (err
 
 	fileContentData, fileContentOk := d.GetOk("content")
 	if !fileContentOk {
-		return fmt.Errorf("file content must be passed")
+		return diag.FromErr(fmt.Errorf("file content must be passed"))
 	}
 	fileContent := fileContentData.(string)
 
@@ -177,7 +181,7 @@ func resourceRepositoryFileCreate(d *schema.ResourceData, meta interface{}) (err
 	case encodingBase64:
 		// fileContent is already base64 encoded
 	default:
-		return fmt.Errorf("encoding must be one of 'base64' or 'text'")
+		return diag.FromErr(fmt.Errorf("encoding must be one of 'base64' or 'text'"))
 	}
 
 	// Lock per repo/branch to prevent concurrent ref updates
@@ -192,7 +196,7 @@ func resourceRepositoryFileCreate(d *schema.ResourceData, meta interface{}) (err
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			exists = false
 		} else {
-			return fmt.Errorf("error checking file existence: %w", err)
+			return diag.FromErr(fmt.Errorf("error checking file existence: %w", err))
 		}
 	} else if resp != nil && resp.StatusCode == http.StatusOK {
 		exists = true
@@ -201,7 +205,7 @@ func resourceRepositoryFileCreate(d *schema.ResourceData, meta interface{}) (err
 	var fileResponse *gitea.FileResponse
 	if exists {
 		if !overwrite {
-			return fmt.Errorf("file already exists and overwrite is not allowed")
+			return diag.FromErr(fmt.Errorf("file already exists and overwrite is not allowed"))
 		}
 		// File exists, update it
 		updateOpts := gitea.UpdateFileOptions{
@@ -227,7 +231,7 @@ func resourceRepositoryFileCreate(d *schema.ResourceData, meta interface{}) (err
 				time.Sleep(backoff)
 				continue
 			}
-			return fmt.Errorf("error updating file in repository: %v", err)
+			return diag.FromErr(fmt.Errorf("error updating file in repository: %v", err))
 		}
 	} else {
 		// File does not exist, create it
@@ -249,16 +253,17 @@ func resourceRepositoryFileCreate(d *schema.ResourceData, meta interface{}) (err
 				time.Sleep(backoff)
 				continue
 			}
-			return fmt.Errorf("error creating file in repository: %v", err)
+			return diag.FromErr(fmt.Errorf("error creating file in repository: %v", err))
 		}
 	}
 
 	err = setRepositoryFileResourceData(fileResponse, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceRepositoryFileUpdate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepositoryFileUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	name := d.Get(repoName).(string)
@@ -277,7 +282,7 @@ func resourceRepositoryFileUpdate(d *schema.ResourceData, meta interface{}) (err
 	case encodingBase64:
 		// Content is already base64 encoded
 	default:
-		return fmt.Errorf("encoding must be one of 'base64' or 'text'")
+		return diag.FromErr(fmt.Errorf("encoding must be one of 'base64' or 'text'"))
 	}
 	opts := gitea.UpdateFileOptions{
 		FileOptions: gitea.FileOptions{
@@ -307,24 +312,25 @@ func resourceRepositoryFileUpdate(d *schema.ResourceData, meta interface{}) (err
 			time.Sleep(backoff)
 			continue
 		}
-		return fmt.Errorf("error updating file in repository: %v", err)
+		return diag.FromErr(fmt.Errorf("error updating file in repository: %v", err))
 	}
 	// File exists, update it
 	// fileResponse, resp, err := client.UpdateFile(username, name, filePath, opts)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setRepositoryFileResourceData(fileResponse, d)
 	if err != nil {
-		return fmt.Errorf("error setting file resource data: %v", err)
+		return diag.FromErr(fmt.Errorf("error setting file resource data: %v", err))
 	}
 
 	return nil
 
 }
 
-func resourceRepositoryFileDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepositoryFileDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	owner := d.Get(repoOwner).(string)
@@ -352,7 +358,7 @@ func resourceRepositoryFileDelete(d *schema.ResourceData, meta interface{}) (err
 			time.Sleep(backoff)
 			continue
 		}
-		return fmt.Errorf("error deleting file from repository: %v", err)
+		return diag.FromErr(fmt.Errorf("error deleting file from repository: %v", err))
 	}
 
 	return nil
@@ -447,10 +453,10 @@ func shouldRetryPush(resp *gitea.Response, err error) bool {
 
 func resourceGiteaRepositoryFile() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceRepositoryFileRead,
-		Create: resourceRepositoryFileCreate,
-		Update: resourceRepositoryFileUpdate,
-		Delete: resourceRepositoryFileDelete,
+		ReadContext:   resourceRepositoryFileRead,
+		CreateContext: resourceRepositoryFileCreate,
+		UpdateContext: resourceRepositoryFileUpdate,
+		DeleteContext: resourceRepositoryFileDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

@@ -1,15 +1,17 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGiteaTeams() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaTeamsRead,
+		ReadContext: dataSourceGiteaTeamsRead,
 		Schema: map[string]*schema.Schema{
 			"organisation": {
 				Type:        schema.TypeString,
@@ -58,7 +60,7 @@ func dataSourceGiteaTeams() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaTeamsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaTeamsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	org := d.Get("organisation").(string)
@@ -70,7 +72,7 @@ func dataSourceGiteaTeamsRead(d *schema.ResourceData, meta interface{}) error {
 		return items, err
 	})
 	if err != nil {
-		return fmt.Errorf("unable to list teams for org %q: %w", org, err)
+		return diag.FromErr(fmt.Errorf("unable to list teams for org %q: %w", org, err))
 	}
 
 	result := make([]interface{}, 0, len(teams))
@@ -92,7 +94,7 @@ func dataSourceGiteaTeamsRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(fmt.Sprintf("org:%s:teams", org))
 	if err := d.Set("teams", result); err != nil {
-		return fmt.Errorf("failed to set teams: %w", err)
+		return diag.FromErr(fmt.Errorf("failed to set teams: %w", err))
 	}
 
 	return nil

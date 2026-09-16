@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -114,14 +115,15 @@ func searchUserByName(c *gitea.Client, name string) (res *gitea.User, err error)
 	}
 }
 
-func resourceRepoRead(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepoRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	var resp *gitea.Response
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	repo, resp, err := client.GetRepoByID(id)
@@ -131,16 +133,17 @@ func resourceRepoRead(d *schema.ResourceData, meta interface{}) (err error) {
 			d.SetId("")
 			return nil
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	err = setRepoResourceData(repo, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceRepoCreate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepoCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	var repo *gitea.Repository
@@ -153,7 +156,7 @@ func resourceRepoCreate(d *schema.ResourceData, meta interface{}) (err error) {
 			_, err := searchUserByName(client, d.Get(repoOwner).(string))
 			if err != nil {
 				if strings.Contains(err.Error(), "could not be found") {
-					return fmt.Errorf("creation of repository cound not proceed as owner %s is not present in gitea", d.Get(repoOwner).(string))
+					return diag.FromErr(fmt.Errorf("creation of repository cound not proceed as owner %s is not present in gitea", d.Get(repoOwner).(string)))
 				}
 				tflog.Warn(context.Background(), "Error query for users. Assuming missing permissions and proceding with user permissions")
 				hasAdmin = false
@@ -162,7 +165,7 @@ func resourceRepoCreate(d *schema.ResourceData, meta interface{}) (err error) {
 			}
 			orgRepo = false
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	} else {
 		orgRepo = true
@@ -211,7 +214,7 @@ func resourceRepoCreate(d *schema.ResourceData, meta interface{}) (err error) {
 	} else if d.Get(repoSourceTemplate) != "" {
 		repoSource := strings.Split(d.Get(repoSourceTemplate).(string), "/")
 		if len(repoSource) != 2 {
-			return errors.New("Invalid source template format")
+			return diag.FromErr(errors.New("Invalid source template format"))
 		}
 
 		// No items will return an API error
@@ -259,7 +262,7 @@ func resourceRepoCreate(d *schema.ResourceData, meta interface{}) (err error) {
 	}
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if v, ok := d.GetOk(repoDefaultMergeStyle); ok && v.(string) != "" {
@@ -269,16 +272,17 @@ func resourceRepoCreate(d *schema.ResourceData, meta interface{}) (err error) {
 		}
 		repo, _, err = client.EditRepo(repo.Owner.UserName, repo.Name, opts)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	err = setRepoResourceData(repo, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceRepoUpdate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepoUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	var repo *gitea.Repository
@@ -346,14 +350,15 @@ func resourceRepoUpdate(d *schema.ResourceData, meta interface{}) (err error) {
 	repo, _, err = client.EditRepo(d.Get(repoOwner).(string), currentRepoName, opts)
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	err = setRepoResourceData(repo, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceRepoDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepoDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	archiveOnDestroy := d.Get(repoArchiveOnDestroy).(bool)
@@ -365,16 +370,16 @@ func resourceRepoDelete(d *schema.ResourceData, meta interface{}) (err error) {
 		if archived {
 			log.Printf("[DEBUG] Repository already archived, nothing to do on delete: %s/%s", owner, name)
 			err = nil
-			return err
+			return diag.FromErr(err)
 		} else {
 			log.Printf("[DEBUG] Archiving repository on delete: %s/%s", owner, name)
 			err = archiveRepo(d, client)
-			return err
+			return diag.FromErr(err)
 		}
 	} else {
 		log.Printf("[DEBUG] Deleting repository: %s/%s", owner, repoName)
 		err = deleteRepo(d, client)
-		return err
+		return diag.FromErr(err)
 	}
 }
 
@@ -483,10 +488,10 @@ func setRepoResourceData(repo *gitea.Repository, d *schema.ResourceData) (err er
 
 func resourceGiteaRepository() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceRepoRead,
-		Create: resourceRepoCreate,
-		Update: resourceRepoUpdate,
-		Delete: resourceRepoDelete,
+		ReadContext:   resourceRepoRead,
+		CreateContext: resourceRepoCreate,
+		UpdateContext: resourceRepoUpdate,
+		DeleteContext: resourceRepoDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

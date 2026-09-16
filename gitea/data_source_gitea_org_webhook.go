@@ -1,16 +1,18 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGiteaOrgWebhook() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaOrgWebhookRead,
+		ReadContext: dataSourceGiteaOrgWebhookRead,
 		Schema: map[string]*schema.Schema{
 			"org": {
 				Type:        schema.TypeString,
@@ -55,14 +57,14 @@ func dataSourceGiteaOrgWebhook() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaOrgWebhookRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaOrgWebhookRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	org := d.Get("org").(string)
 	id := int64(d.Get("id").(int))
 
 	hook, _, err := client.GetOrgHook(org, id)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(hook.ID, 10))
@@ -77,7 +79,7 @@ func dataSourceGiteaOrgWebhookRead(d *schema.ResourceData, meta interface{}) err
 
 func dataSourceGiteaOrgWebhooks() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaOrgWebhooksRead,
+		ReadContext: dataSourceGiteaOrgWebhooksRead,
 		Schema: map[string]*schema.Schema{
 			"org": {
 				Type:        schema.TypeString,
@@ -113,13 +115,13 @@ func dataSourceGiteaOrgWebhooks() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaOrgWebhooksRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaOrgWebhooksRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	org := d.Get("org").(string)
 
 	hooks, _, err := client.ListOrgHooks(org, gitea.ListHooksOptions{})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	result := make([]map[string]interface{}, 0, len(hooks))

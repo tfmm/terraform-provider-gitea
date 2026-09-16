@@ -1,10 +1,12 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -30,7 +32,8 @@ const (
 	userForcePasswordChange string = "force_password_change"
 )
 
-func resourceUserRead(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceUserRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -44,16 +47,17 @@ func resourceUserRead(d *schema.ResourceData, meta interface{}) (err error) {
 			d.SetId("")
 			return nil
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	err = setUserResourceData(user, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceUserCreate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	var user *gitea.User
@@ -74,17 +78,16 @@ func resourceUserCreate(d *schema.ResourceData, meta interface{}) (err error) {
 
 	user, _, err = client.AdminCreateUser(opts)
 	if err != nil {
-		return
+		return diag.FromErr(err)
 	}
 
 	d.SetId(fmt.Sprintf("%d", user.ID))
 
-	err = resourceUserUpdate(d, meta)
-
-	return
+	return resourceUserUpdate(ctx, d, meta)
 }
 
-func resourceUserUpdate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -94,9 +97,9 @@ func resourceUserUpdate(d *schema.ResourceData, meta interface{}) (err error) {
 	user, resp, err = client.GetUserByID(id)
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
-			return resourceUserCreate(d, meta)
+			return resourceUserCreate(ctx, d, meta)
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
@@ -144,20 +147,21 @@ func resourceUserUpdate(d *schema.ResourceData, meta interface{}) (err error) {
 
 	_, err = client.AdminEditUser(d.Get(userName).(string), opts)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	user, _, err = client.GetUserByID(id)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setUserResourceData(user, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceUserDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceUserDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	var resp *gitea.Response
@@ -165,13 +169,13 @@ func resourceUserDelete(d *schema.ResourceData, meta interface{}) (err error) {
 	resp, err = client.AdminDeleteUser(d.Get(userName).(string))
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
-			return
+			return diag.FromErr(err)
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
-	return
+	return diag.FromErr(err)
 }
 
 func setUserResourceData(user *gitea.User, d *schema.ResourceData) (err error) {
@@ -204,10 +208,10 @@ func setUserResourceData(user *gitea.User, d *schema.ResourceData) (err error) {
 
 func resourceGiteaUser() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceUserRead,
-		Create: resourceUserCreate,
-		Update: resourceUserUpdate,
-		Delete: resourceUserDelete,
+		ReadContext:   resourceUserRead,
+		CreateContext: resourceUserCreate,
+		UpdateContext: resourceUserUpdate,
+		DeleteContext: resourceUserDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},

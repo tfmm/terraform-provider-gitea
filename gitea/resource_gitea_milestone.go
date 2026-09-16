@@ -8,14 +8,15 @@ import (
 	"time"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceMilestoneRead(d *schema.ResourceData, meta interface{}) error {
+func resourceMilestoneRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	user := d.Get("user").(string)
@@ -27,7 +28,7 @@ func resourceMilestoneRead(d *schema.ResourceData, meta interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.Set("title", milestone.Title)
@@ -40,7 +41,7 @@ func resourceMilestoneRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceMilestoneCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceMilestoneCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
@@ -57,7 +58,7 @@ func resourceMilestoneCreate(d *schema.ResourceData, meta interface{}) error {
 			// Try YYYY-MM-DD
 			t, err = time.Parse("2006-01-02", dueOnStr.(string))
 			if err != nil {
-				return fmt.Errorf("invalid due_on date format: %w", err)
+				return diag.FromErr(fmt.Errorf("invalid due_on date format: %w", err))
 			}
 		}
 		opts.Deadline = &t
@@ -65,18 +66,18 @@ func resourceMilestoneCreate(d *schema.ResourceData, meta interface{}) error {
 
 	milestone, _, err := client.CreateMilestone(user, repo, opts)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(milestone.ID, 10))
-	return resourceMilestoneRead(d, meta)
+	return resourceMilestoneRead(ctx, d, meta)
 }
 
-func resourceMilestoneUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceMilestoneUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	user := d.Get("user").(string)
@@ -97,7 +98,7 @@ func resourceMilestoneUpdate(d *schema.ResourceData, meta interface{}) error {
 		if err != nil {
 			t, err = time.Parse("2006-01-02", dueOnStr.(string))
 			if err != nil {
-				return fmt.Errorf("invalid due_on date format: %w", err)
+				return diag.FromErr(fmt.Errorf("invalid due_on date format: %w", err))
 			}
 		}
 		opts.Deadline = &t
@@ -105,32 +106,32 @@ func resourceMilestoneUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	_, _, err = client.EditMilestone(user, repo, id, opts)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceMilestoneRead(d, meta)
+	return resourceMilestoneRead(ctx, d, meta)
 }
 
-func resourceMilestoneDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceMilestoneDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
 
 	_, err = client.DeleteMilestone(user, repo, id)
-	return err
+	return diag.FromErr(err)
 }
 
 func resourceGiteaMilestone() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceMilestoneRead,
-		Create: resourceMilestoneCreate,
-		Update: resourceMilestoneUpdate,
-		Delete: resourceMilestoneDelete,
+		ReadContext:   resourceMilestoneRead,
+		CreateContext: resourceMilestoneCreate,
+		UpdateContext: resourceMilestoneUpdate,
+		DeleteContext: resourceMilestoneDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")

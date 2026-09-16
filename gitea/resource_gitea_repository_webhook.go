@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -31,12 +32,13 @@ const (
 	repoWebhookConfig              string = "config"
 )
 
-func resourceRepositoryWebhookRead(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepositoryWebhookRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	user := d.Get(repoWebhookUsername).(string)
@@ -46,15 +48,15 @@ func resourceRepositoryWebhookRead(d *schema.ResourceData, meta interface{}) (er
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
 			d.SetId("")
-			return
+			return diag.FromErr(err)
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	err = setRepositoryWebhookData(hook, d)
 
-	return
+	return diag.FromErr(err)
 }
 
 func buildWebhookConfigMap(d *schema.ResourceData) map[string]string {
@@ -101,7 +103,8 @@ func buildWebhookConfigMap(d *schema.ResourceData) map[string]string {
 	return config
 }
 
-func resourceRepositoryWebhookCreate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepositoryWebhookCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	user := d.Get(repoWebhookUsername).(string)
@@ -121,22 +124,23 @@ func resourceRepositoryWebhookCreate(d *schema.ResourceData, meta interface{}) (
 
 	hook, _, err := client.CreateRepoHook(user, repo, hookOption)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setRepositoryWebhookData(hook, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceRepositoryWebhookUpdate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepositoryWebhookUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	user := d.Get(repoWebhookUsername).(string)
 	repo := d.Get(repoWebhookName).(string)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	config := buildWebhookConfigMap(d)
@@ -153,35 +157,36 @@ func resourceRepositoryWebhookUpdate(d *schema.ResourceData, meta interface{}) (
 
 	_, err = client.EditRepoHook(user, repo, id, hookOption)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	hook, _, err := client.GetRepoHook(user, repo, id)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setRepositoryWebhookData(hook, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceRepositoryWebhookDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepositoryWebhookDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	user := d.Get(repoWebhookUsername).(string)
 	repo := d.Get(repoWebhookName).(string)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	_, err = client.DeleteRepoHook(user, repo, id)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return
+	return diag.FromErr(err)
 }
 
 func extractEvents(d *schema.ResourceData) []string {
@@ -348,10 +353,10 @@ func stringSliceToInterfaceSlice(values []string) []interface{} {
 
 func resourceGiteaRepositoryWebhook() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceRepositoryWebhookRead,
-		Create: resourceRepositoryWebhookCreate,
-		Update: resourceRepositoryWebhookUpdate,
-		Delete: resourceRepositoryWebhookDelete,
+		ReadContext:   resourceRepositoryWebhookRead,
+		CreateContext: resourceRepositoryWebhookCreate,
+		UpdateContext: resourceRepositoryWebhookUpdate,
+		DeleteContext: resourceRepositoryWebhookDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
@@ -465,7 +470,6 @@ func resourceGiteaRepositoryWebhook() *schema.Resource {
 		Description: "This resource allows you to create and manage webhooks for repositories.",
 	}
 }
-
 
 func webhookConfigDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
 	key := strings.TrimPrefix(k, "config.")
