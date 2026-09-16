@@ -26,6 +26,9 @@ func resourceTeamRead(d *schema.ResourceData, meta interface{}) (err error) {
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return err
+	}
 
 	var resp *gitea.Response
 	var team *gitea.Team
@@ -97,6 +100,9 @@ func resourceTeamUpdate(d *schema.ResourceData, meta interface{}) (err error) {
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return err
+	}
 
 	var resp *gitea.Response
 	var team *gitea.Team
@@ -314,6 +320,9 @@ func resourceTeamDelete(d *schema.ResourceData, meta interface{}) (err error) {
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return err
+	}
 
 	var resp *gitea.Response
 

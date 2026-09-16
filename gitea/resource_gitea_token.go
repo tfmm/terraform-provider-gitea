@@ -108,6 +108,9 @@ func resourceTokenRead(d *schema.ResourceData, meta interface{}) (err error) {
 	var token *gitea.AccessToken
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return err
+	}
 
 	token, err = searchTokenById(client, id)
 

@@ -84,6 +84,9 @@ func resourceOrgRead(d *schema.ResourceData, meta interface{}) (err error) {
 	var org *gitea.Organization
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return err
+	}
 
 	org, err = searchOrgByClientId(client, id)
 	if err != nil {

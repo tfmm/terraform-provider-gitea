@@ -20,6 +20,9 @@ func resourceGPGKeyRead(ctx context.Context, d *schema.ResourceData, meta interf
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("error reading gpg key: invalid id: %w", err))
+	}
 
 	var resp *gitea.Response
 	var pubKey *gitea.GPGKey

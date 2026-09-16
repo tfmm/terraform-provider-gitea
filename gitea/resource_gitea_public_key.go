@@ -41,6 +41,9 @@ func resourcePublicKeyRead(d *schema.ResourceData, meta interface{}) (err error)
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return err
+	}
 
 	var resp *gitea.Response
 	var pubKey *gitea.PublicKey
@@ -91,6 +94,9 @@ func resourcePublicKeyDelete(d *schema.ResourceData, meta interface{}) (err erro
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return err
+	}
 
 	var resp *gitea.Response
 
