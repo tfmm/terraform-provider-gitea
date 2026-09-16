@@ -95,13 +95,13 @@ func dataSourceGiteaUserRead(ctx context.Context, d *schema.ResourceData, meta i
 	if err := d.Set("is_admin", user.IsAdmin); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("created", user.Created); err != nil {
+	if err := d.Set("created", timeToString(user.Created)); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("avatar_url", user.AvatarURL); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("last_login", user.LastLogin); err != nil {
+	if err := d.Set("last_login", timeToString(user.LastLogin)); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("language", user.Language); err != nil {

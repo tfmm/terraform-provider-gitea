@@ -132,7 +132,7 @@ func setPublicKeyResourceData(pubKey *gitea.PublicKey, d *schema.ResourceData) (
 	if err := d.Set(PublicKeyReadOnlyFlag, pubKey.ReadOnly); err != nil {
 		return err
 	}
-	if err := d.Set(PublicKeyCreated, pubKey.Created); err != nil {
+	if err := d.Set(PublicKeyCreated, timeToString(pubKey.Created)); err != nil {
 		return err
 	}
 	if err := d.Set(PublicKeyFingerprint, pubKey.Fingerprint); err != nil {

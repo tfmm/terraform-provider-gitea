@@ -189,10 +189,10 @@ func dataSourceGiteaRepoRead(ctx context.Context, d *schema.ResourceData, meta i
 	if err := d.Set("default_merge_style", string(repo.DefaultMergeStyle)); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("created", repo.Created); err != nil {
+	if err := d.Set("created", timeToString(repo.Created)); err != nil {
 		return diag.FromErr(err)
 	}
-	if err := d.Set("updated", repo.Updated); err != nil {
+	if err := d.Set("updated", timeToString(repo.Updated)); err != nil {
 		return diag.FromErr(err)
 	}
 	if err := d.Set("permission_admin", repo.Permissions.Admin); err != nil {

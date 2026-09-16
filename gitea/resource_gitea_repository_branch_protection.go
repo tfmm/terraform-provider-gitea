@@ -325,10 +325,10 @@ func setRepositoryBranchProtectionData(bp *gitea.BranchProtection, user string, 
 	if err := d.Set(repoBPBlockAdminMergeOverride, bp.BlockAdminMergeOverride); err != nil {
 		return err
 	}
-	if err := d.Set(repoBPUpdatedAt, bp.Updated); err != nil {
+	if err := d.Set(repoBPUpdatedAt, timeToString(bp.Updated)); err != nil {
 		return err
 	}
-	if err := d.Set(repoBPCreatedAt, bp.Created); err != nil {
+	if err := d.Set(repoBPCreatedAt, timeToString(bp.Created)); err != nil {
 		return err
 	}
 
