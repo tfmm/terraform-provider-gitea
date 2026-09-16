@@ -1,17 +1,19 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"time"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGiteaMilestone() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaMilestoneRead,
+		ReadContext: dataSourceGiteaMilestoneRead,
 		Schema: map[string]*schema.Schema{
 			"user": {
 				Type:        schema.TypeString,
@@ -63,7 +65,7 @@ func dataSourceGiteaMilestone() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaMilestoneRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaMilestoneRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
@@ -71,18 +73,30 @@ func dataSourceGiteaMilestoneRead(d *schema.ResourceData, meta interface{}) erro
 
 	milestone, _, err := client.GetMilestone(user, repo, id)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(milestone.ID, 10))
-	d.Set("title", milestone.Title)
-	d.Set("description", milestone.Description)
-	d.Set("state", string(milestone.State))
-	d.Set("open_issues", milestone.OpenIssues)
-	d.Set("closed_issues", milestone.ClosedIssues)
+	if err := d.Set("title", milestone.Title); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("description", milestone.Description); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("state", string(milestone.State)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("open_issues", milestone.OpenIssues); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("closed_issues", milestone.ClosedIssues); err != nil {
+		return diag.FromErr(err)
+	}
 
 	if milestone.Deadline != nil {
-		d.Set("due_on", milestone.Deadline.Format(time.RFC3339))
+		if err := d.Set("due_on", milestone.Deadline.Format(time.RFC3339)); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return nil
@@ -90,7 +104,7 @@ func dataSourceGiteaMilestoneRead(d *schema.ResourceData, meta interface{}) erro
 
 func dataSourceGiteaMilestones() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaMilestonesRead,
+		ReadContext: dataSourceGiteaMilestonesRead,
 		Schema: map[string]*schema.Schema{
 			"user": {
 				Type:        schema.TypeString,
@@ -145,7 +159,7 @@ func dataSourceGiteaMilestones() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaMilestonesRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaMilestonesRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
@@ -155,7 +169,7 @@ func dataSourceGiteaMilestonesRead(d *schema.ResourceData, meta interface{}) err
 		State: gitea.StateType(state),
 	})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	result := make([]map[string]interface{}, 0, len(milestones))
@@ -171,7 +185,9 @@ func dataSourceGiteaMilestonesRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s/milestones", user, repo))
-	d.Set("milestones", result)
+	if err := d.Set("milestones", result); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }

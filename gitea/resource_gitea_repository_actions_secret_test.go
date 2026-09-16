@@ -1,6 +1,7 @@
 package gitea
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -27,8 +28,7 @@ func TestResourceRepositoryActionsSecretReadReturnsServerErrorWithoutClearingSta
 	d := schema.TestResourceDataRaw(t, resourceGiteaRepositoryActionsSecret().Schema, map[string]interface{}{})
 	d.SetId(buildThreePartID("owner", "repo", "secret"))
 
-	err = resourceGiteaRepositoryActionsSecretRead(d, client)
-	if err == nil {
+	if diags := resourceGiteaRepositoryActionsSecretRead(context.Background(), d, client); !diags.HasError() {
 		t.Fatal("expected read to return an error")
 	}
 	if d.Id() == "" {

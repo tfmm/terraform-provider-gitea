@@ -1,10 +1,12 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -30,10 +32,14 @@ const (
 	userForcePasswordChange string = "force_password_change"
 )
 
-func resourceUserRead(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceUserRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	var resp *gitea.Response
 	var user *gitea.User
@@ -44,16 +50,17 @@ func resourceUserRead(d *schema.ResourceData, meta interface{}) (err error) {
 			d.SetId("")
 			return nil
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	err = setUserResourceData(user, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceUserCreate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	var user *gitea.User
@@ -74,29 +81,31 @@ func resourceUserCreate(d *schema.ResourceData, meta interface{}) (err error) {
 
 	user, _, err = client.AdminCreateUser(opts)
 	if err != nil {
-		return
+		return diag.FromErr(err)
 	}
 
 	d.SetId(fmt.Sprintf("%d", user.ID))
 
-	err = resourceUserUpdate(d, meta)
-
-	return
+	return resourceUserUpdate(ctx, d, meta)
 }
 
-func resourceUserUpdate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	var resp *gitea.Response
 	var user *gitea.User
 
 	user, resp, err = client.GetUserByID(id)
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
-			return resourceUserCreate(d, meta)
+			return resourceUserCreate(ctx, d, meta)
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
@@ -115,67 +124,50 @@ func resourceUserUpdate(d *schema.ResourceData, meta interface{}) (err error) {
 	restricted := d.Get(userRestricted).(bool)
 	visibility := gitea.VisibleType(d.Get(userVisibility).(string))
 
-	if d.Get(userForcePasswordChange).(bool) {
-		opts := gitea.EditUserOption{
-			SourceID:                0,
-			LoginName:               d.Get(userLoginName).(string),
-			Email:                   &mail,
-			FullName:                &fullName,
-			Password:                d.Get(userPassword).(string),
-			Description:             &description,
-			MustChangePassword:      &changePassword,
-			Location:                &location,
-			Active:                  &active,
-			Admin:                   &admin,
-			AllowGitHook:            &allowHook,
-			AllowImportLocal:        &allowImport,
-			MaxRepoCreation:         &maxRepoCreation,
-			ProhibitLogin:           &accessDenied,
-			AllowCreateOrganization: &allowOrgs,
-			Restricted:              &restricted,
-			Visibility:              &visibility,
-		}
-		_, err = client.AdminEditUser(d.Get(userName).(string), opts)
-		if err != nil {
-			return err
-		}
+	opts := gitea.EditUserOption{
+		SourceID:                0,
+		LoginName:               d.Get(userLoginName).(string),
+		Email:                   &mail,
+		FullName:                &fullName,
+		Description:             &description,
+		MustChangePassword:      &changePassword,
+		Location:                &location,
+		Active:                  &active,
+		Admin:                   &admin,
+		AllowGitHook:            &allowHook,
+		AllowImportLocal:        &allowImport,
+		MaxRepoCreation:         &maxRepoCreation,
+		ProhibitLogin:           &accessDenied,
+		AllowCreateOrganization: &allowOrgs,
+		Restricted:              &restricted,
+		Visibility:              &visibility,
+	}
 
-	} else {
-		opts := gitea.EditUserOption{
-			SourceID:                0,
-			LoginName:               d.Get(userLoginName).(string),
-			Email:                   &mail,
-			FullName:                &fullName,
-			Description:             &description,
-			MustChangePassword:      &changePassword,
-			Location:                &location,
-			Active:                  &active,
-			Admin:                   &admin,
-			AllowGitHook:            &allowHook,
-			AllowImportLocal:        &allowImport,
-			MaxRepoCreation:         &maxRepoCreation,
-			ProhibitLogin:           &accessDenied,
-			AllowCreateOrganization: &allowOrgs,
-			Restricted:              &restricted,
-			Visibility:              &visibility,
-		}
-		_, err = client.AdminEditUser(d.Get(userName).(string), opts)
-		if err != nil {
-			return err
-		}
+	// Gitea never returns the password on read, so Terraform can't detect
+	// drift on it by itself. Send it whenever it changed, or whenever the
+	// user explicitly forces it via force_password_change, otherwise a
+	// changed `password` in config would silently never reach the server.
+	if d.HasChange(userPassword) || d.Get(userForcePasswordChange).(bool) {
+		opts.Password = d.Get(userPassword).(string)
+	}
+
+	_, err = client.AdminEditUser(d.Get(userName).(string), opts)
+	if err != nil {
+		return diag.FromErr(err)
 	}
 
 	user, _, err = client.GetUserByID(id)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setUserResourceData(user, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceUserDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceUserDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	var resp *gitea.Response
@@ -183,49 +175,81 @@ func resourceUserDelete(d *schema.ResourceData, meta interface{}) (err error) {
 	resp, err = client.AdminDeleteUser(d.Get(userName).(string))
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
-			return
+			return nil
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
-	return
+	return diag.FromErr(err)
 }
 
 func setUserResourceData(user *gitea.User, d *schema.ResourceData) (err error) {
 	d.SetId(fmt.Sprintf("%d", user.ID))
-	d.Set(userName, user.UserName)
-	d.Set(userEmail, user.Email)
-	d.Set(userFullName, user.FullName)
-	d.Set(userAdmin, user.IsAdmin)
-	d.Set("created", user.Created)
-	d.Set("avatar_url", user.AvatarURL)
-	d.Set("last_login", user.LastLogin)
-	d.Set("language", user.Language)
-	d.Set(userLoginName, user.LoginName)
-	d.Set(userVisibility, string(user.Visibility))
-	d.Set(userDescription, user.Description)
-	d.Set(userLocation, user.Location)
-	d.Set(userActive, user.IsActive)
-	d.Set(userPhorbitLogin, user.ProhibitLogin)
-	d.Set(userRestricted, user.Restricted)
-	d.Set(userMustChangePassword, d.Get(userMustChangePassword).(bool))
-	d.Set(userSendNotification, d.Get(userSendNotification).(bool))
-	d.Set(userAllowGitHook, d.Get(userAllowGitHook).(bool))
-	d.Set(userAllowLocalImport, d.Get(userAllowLocalImport).(bool))
-	d.Set(userMaxRepoCreation, d.Get(userMaxRepoCreation).(int))
-	d.Set(userAllowCreateOrgs, d.Get(userAllowCreateOrgs).(bool))
-	d.Set(userForcePasswordChange, d.Get(userForcePasswordChange).(bool))
+	if err := d.Set(userName, user.UserName); err != nil {
+		return err
+	}
+	if err := d.Set(userEmail, user.Email); err != nil {
+		return err
+	}
+	if err := d.Set(userFullName, user.FullName); err != nil {
+		return err
+	}
+	if err := d.Set(userAdmin, user.IsAdmin); err != nil {
+		return err
+	}
+	if err := d.Set(userLoginName, user.LoginName); err != nil {
+		return err
+	}
+	if err := d.Set(userVisibility, string(user.Visibility)); err != nil {
+		return err
+	}
+	if err := d.Set(userDescription, user.Description); err != nil {
+		return err
+	}
+	if err := d.Set(userLocation, user.Location); err != nil {
+		return err
+	}
+	if err := d.Set(userActive, user.IsActive); err != nil {
+		return err
+	}
+	if err := d.Set(userPhorbitLogin, user.ProhibitLogin); err != nil {
+		return err
+	}
+	if err := d.Set(userRestricted, user.Restricted); err != nil {
+		return err
+	}
+	if err := d.Set(userMustChangePassword, d.Get(userMustChangePassword).(bool)); err != nil {
+		return err
+	}
+	if err := d.Set(userSendNotification, d.Get(userSendNotification).(bool)); err != nil {
+		return err
+	}
+	if err := d.Set(userAllowGitHook, d.Get(userAllowGitHook).(bool)); err != nil {
+		return err
+	}
+	if err := d.Set(userAllowLocalImport, d.Get(userAllowLocalImport).(bool)); err != nil {
+		return err
+	}
+	if err := d.Set(userMaxRepoCreation, d.Get(userMaxRepoCreation).(int)); err != nil {
+		return err
+	}
+	if err := d.Set(userAllowCreateOrgs, d.Get(userAllowCreateOrgs).(bool)); err != nil {
+		return err
+	}
+	if err := d.Set(userForcePasswordChange, d.Get(userForcePasswordChange).(bool)); err != nil {
+		return err
+	}
 
 	return
 }
 
 func resourceGiteaUser() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceUserRead,
-		Create: resourceUserCreate,
-		Update: resourceUserUpdate,
-		Delete: resourceUserDelete,
+		ReadContext:   resourceUserRead,
+		CreateContext: resourceUserCreate,
+		UpdateContext: resourceUserUpdate,
+		DeleteContext: resourceUserDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},

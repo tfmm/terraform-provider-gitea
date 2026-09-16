@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -37,7 +38,7 @@ func resourceGiteaPushMirrorImport(ctx context.Context, d *schema.ResourceData, 
 	return []*schema.ResourceData{d}, nil
 }
 
-func resourceGiteaPushMirrorCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaPushMirrorCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	owner := d.Get("owner").(string)
@@ -53,19 +54,19 @@ func resourceGiteaPushMirrorCreate(d *schema.ResourceData, meta interface{}) err
 
 	pm, _, err := client.PushMirrors(owner, repo, opt)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(buildThreePartID(owner, repo, pm.RemoteName))
-	return resourceGiteaPushMirrorRead(d, meta)
+	return resourceGiteaPushMirrorRead(ctx, d, meta)
 }
 
-func resourceGiteaPushMirrorRead(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaPushMirrorRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	owner, repo, remoteName, err := parsePushMirrorID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	pm, resp, err := client.GetPushMirrorByRemoteName(owner, repo, remoteName)
@@ -74,7 +75,7 @@ func resourceGiteaPushMirrorRead(d *schema.ResourceData, meta interface{}) error
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	if pm == nil {
@@ -83,25 +84,43 @@ func resourceGiteaPushMirrorRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	d.SetId(buildThreePartID(owner, repo, pm.RemoteName))
-	_ = d.Set("owner", owner)
-	_ = d.Set("repo", repo)
-	_ = d.Set("remote_name", pm.RemoteName)
-	_ = d.Set("remote_address", pm.RemoteAddress)
-	_ = d.Set("interval", pm.Interval)
-	_ = d.Set("sync_on_commit", pm.SyncONCommit)
-	_ = d.Set("created", pm.Created)
-	_ = d.Set("last_error", pm.LastError)
-	_ = d.Set("last_update", pm.LastUpdate)
+	if err := d.Set("owner", owner); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("repo", repo); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("remote_name", pm.RemoteName); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("remote_address", pm.RemoteAddress); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("interval", pm.Interval); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("sync_on_commit", pm.SyncONCommit); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("created", pm.Created); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("last_error", pm.LastError); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("last_update", pm.LastUpdate); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
 
-func resourceGiteaPushMirrorDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceGiteaPushMirrorDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	owner, repo, remoteName, err := parsePushMirrorID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	resp, err := client.DeletePushMirror(owner, repo, remoteName)
@@ -109,7 +128,7 @@ func resourceGiteaPushMirrorDelete(d *schema.ResourceData, meta interface{}) err
 		if resp != nil && resp.StatusCode == 404 {
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	return nil
@@ -117,9 +136,9 @@ func resourceGiteaPushMirrorDelete(d *schema.ResourceData, meta interface{}) err
 
 func resourceGiteaPushMirror() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceGiteaPushMirrorCreate,
-		Read:   resourceGiteaPushMirrorRead,
-		Delete: resourceGiteaPushMirrorDelete,
+		CreateContext: resourceGiteaPushMirrorCreate,
+		ReadContext:   resourceGiteaPushMirrorRead,
+		DeleteContext: resourceGiteaPushMirrorDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceGiteaPushMirrorImport,
 		},

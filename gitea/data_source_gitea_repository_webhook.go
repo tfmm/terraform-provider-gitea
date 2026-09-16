@@ -1,18 +1,20 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGiteaRepositoryWebhook() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaRepositoryWebhookRead,
+		ReadContext: dataSourceGiteaRepositoryWebhookRead,
 
 		Schema: map[string]*schema.Schema{
 			"username": {
@@ -116,7 +118,7 @@ func dataSourceGiteaRepositoryWebhook() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaRepositoryWebhookRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaRepositoryWebhookRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	owner := strings.ToLower(d.Get("username").(string))
@@ -126,41 +128,75 @@ func dataSourceGiteaRepositoryWebhookRead(d *schema.ResourceData, meta interface
 	hook, resp, err := client.GetRepoHook(owner, repo, id)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			return fmt.Errorf("webhook with id %d not found for repo %s/%s", id, owner, repo)
+			return diag.FromErr(fmt.Errorf("webhook with id %d not found for repo %s/%s", id, owner, repo))
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(hook.ID, 10))
-	d.Set("username", owner)
-	d.Set("name", repo)
-	d.Set("type", hook.Type)
-	d.Set("url", hookConfigValue(hook, "url"))
-	d.Set("content_type", hookConfigValue(hook, "content_type"))
-	d.Set("secret", hookConfigValue(hook, "secret"))
-	d.Set("authorization_header", hook.AuthorizationHeader)
-	d.Set("events", stringSliceToInterfaceSlice(hook.Events))
-	d.Set("branch_filter", hook.BranchFilter)
-	d.Set("active", hook.Active)
-	d.Set("created_at", hook.Created.Format("2006-01-02T15:04:05Z07:00"))
+	if err := d.Set("username", owner); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("name", repo); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("type", hook.Type); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("url", hookConfigValue(hook, "url")); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("content_type", hookConfigValue(hook, "content_type")); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("secret", hookConfigValue(hook, "secret")); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("authorization_header", hook.AuthorizationHeader); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("events", stringSliceToInterfaceSlice(hook.Events)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("branch_filter", hook.BranchFilter); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("active", hook.Active); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("created_at", hook.Created.Format("2006-01-02T15:04:05Z07:00")); err != nil {
+		return diag.FromErr(err)
+	}
 
 	if v := hookConfigValue(hook, "http_method"); v != "" {
-		d.Set("http_method", v)
+		if err := d.Set("http_method", v); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if v := hookConfigValue(hook, "channel"); v != "" {
-		d.Set("channel", v)
+		if err := d.Set("channel", v); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if v := hookConfigValue(hook, "username"); v != "" {
-		d.Set("slack_username", v)
+		if err := d.Set("slack_username", v); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if v := hookConfigValue(hook, "icon_url"); v != "" {
-		d.Set("icon_url", v)
+		if err := d.Set("icon_url", v); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if v := hookConfigValue(hook, "color"); v != "" {
-		d.Set("color", v)
+		if err := d.Set("color", v); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 	if hook.Config != nil {
-		d.Set("config", hook.Config)
+		if err := d.Set("config", hook.Config); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	return nil

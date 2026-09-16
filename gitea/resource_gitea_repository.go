@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -114,14 +115,15 @@ func searchUserByName(c *gitea.Client, name string) (res *gitea.User, err error)
 	}
 }
 
-func resourceRepoRead(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepoRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	var resp *gitea.Response
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	repo, resp, err := client.GetRepoByID(id)
@@ -131,16 +133,17 @@ func resourceRepoRead(d *schema.ResourceData, meta interface{}) (err error) {
 			d.SetId("")
 			return nil
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	err = setRepoResourceData(repo, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceRepoCreate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepoCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	var repo *gitea.Repository
@@ -153,7 +156,7 @@ func resourceRepoCreate(d *schema.ResourceData, meta interface{}) (err error) {
 			_, err := searchUserByName(client, d.Get(repoOwner).(string))
 			if err != nil {
 				if strings.Contains(err.Error(), "could not be found") {
-					return fmt.Errorf("creation of repository cound not proceed as owner %s is not present in gitea", d.Get(repoOwner).(string))
+					return diag.FromErr(fmt.Errorf("creation of repository cound not proceed as owner %s is not present in gitea", d.Get(repoOwner).(string)))
 				}
 				tflog.Warn(context.Background(), "Error query for users. Assuming missing permissions and proceding with user permissions")
 				hasAdmin = false
@@ -162,7 +165,7 @@ func resourceRepoCreate(d *schema.ResourceData, meta interface{}) (err error) {
 			}
 			orgRepo = false
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	} else {
 		orgRepo = true
@@ -211,7 +214,7 @@ func resourceRepoCreate(d *schema.ResourceData, meta interface{}) (err error) {
 	} else if d.Get(repoSourceTemplate) != "" {
 		repoSource := strings.Split(d.Get(repoSourceTemplate).(string), "/")
 		if len(repoSource) != 2 {
-			return errors.New("Invalid source template format")
+			return diag.FromErr(errors.New("Invalid source template format"))
 		}
 
 		// No items will return an API error
@@ -259,7 +262,7 @@ func resourceRepoCreate(d *schema.ResourceData, meta interface{}) (err error) {
 	}
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	if v, ok := d.GetOk(repoDefaultMergeStyle); ok && v.(string) != "" {
@@ -269,16 +272,17 @@ func resourceRepoCreate(d *schema.ResourceData, meta interface{}) (err error) {
 		}
 		repo, _, err = client.EditRepo(repo.Owner.UserName, repo.Name, opts)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	err = setRepoResourceData(repo, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceRepoUpdate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepoUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	var repo *gitea.Repository
@@ -346,14 +350,15 @@ func resourceRepoUpdate(d *schema.ResourceData, meta interface{}) (err error) {
 	repo, _, err = client.EditRepo(d.Get(repoOwner).(string), currentRepoName, opts)
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	err = setRepoResourceData(repo, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceRepoDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepoDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	archiveOnDestroy := d.Get(repoArchiveOnDestroy).(bool)
@@ -365,16 +370,16 @@ func resourceRepoDelete(d *schema.ResourceData, meta interface{}) (err error) {
 		if archived {
 			log.Printf("[DEBUG] Repository already archived, nothing to do on delete: %s/%s", owner, name)
 			err = nil
-			return err
+			return diag.FromErr(err)
 		} else {
 			log.Printf("[DEBUG] Archiving repository on delete: %s/%s", owner, name)
 			err = archiveRepo(d, client)
-			return err
+			return diag.FromErr(err)
 		}
 	} else {
 		log.Printf("[DEBUG] Deleting repository: %s/%s", owner, repoName)
 		err = deleteRepo(d, client)
-		return err
+		return diag.FromErr(err)
 	}
 }
 
@@ -435,47 +440,98 @@ func deleteRepo(d *schema.ResourceData, client *gitea.Client) (err error) {
 func setRepoResourceData(repo *gitea.Repository, d *schema.ResourceData) (err error) {
 	d.SetId(fmt.Sprintf("%d", repo.ID))
 	if repo.Owner != nil {
-		d.Set("username", repo.Owner.UserName)
+		if err := d.Set("username", repo.Owner.UserName); err != nil {
+			return err
+		}
 	}
-	d.Set("name", repo.Name)
-	d.Set("description", repo.Description)
-	d.Set("full_name", repo.FullName)
-	d.Set("private", repo.Private)
-	d.Set("fork", repo.Fork)
-	d.Set(repoTemplate, repo.Template)
-	d.Set("mirror", repo.Mirror)
-	d.Set("size", repo.Size)
-	d.Set("html_url", repo.HTMLURL)
-	d.Set("ssh_url", repo.SSHURL)
-	d.Set("clone_url", repo.CloneURL)
-	d.Set("website", repo.Website)
-	d.Set("stars", repo.Stars)
-	d.Set("forks", repo.Forks)
-	d.Set("watchers", repo.Watchers)
-	d.Set("open_issue_count", repo.OpenIssues)
-	d.Set("default_branch", repo.DefaultBranch)
-	d.Set("created", repo.Created.String())
-	d.Set("updated", repo.Updated.String())
-	d.Set(repoIssues, repo.HasIssues)
-	d.Set(repoWiki, repo.HasWiki)
-	d.Set(repoPrs, repo.HasPullRequests)
-	d.Set(repoProjects, repo.HasProjects)
-	d.Set(repoIgnoreWhitespace, repo.IgnoreWhitespaceConflicts)
-	d.Set(repoAllowMerge, repo.AllowMerge)
-	d.Set(repoAllowRebase, repo.AllowRebase)
-	d.Set(repoAllowRebaseMerge, repo.AllowRebaseMerge)
-	d.Set(repoAllowSquash, repo.AllowSquash)
-	d.Set(repoArchived, repo.Archived)
-	d.Set(repoDefaultMergeStyle, string(repo.DefaultMergeStyle))
+	if err := d.Set("name", repo.Name); err != nil {
+		return err
+	}
+	if err := d.Set("description", repo.Description); err != nil {
+		return err
+	}
+	if err := d.Set("private", repo.Private); err != nil {
+		return err
+	}
+	if err := d.Set(repoTemplate, repo.Template); err != nil {
+		return err
+	}
+	if err := d.Set("mirror", repo.Mirror); err != nil {
+		return err
+	}
+	if err := d.Set("html_url", repo.HTMLURL); err != nil {
+		return err
+	}
+	if err := d.Set("ssh_url", repo.SSHURL); err != nil {
+		return err
+	}
+	if err := d.Set("clone_url", repo.CloneURL); err != nil {
+		return err
+	}
+	if err := d.Set("website", repo.Website); err != nil {
+		return err
+	}
+	if err := d.Set("default_branch", repo.DefaultBranch); err != nil {
+		return err
+	}
+	if err := d.Set("created", repo.Created.String()); err != nil {
+		return err
+	}
+	if err := d.Set("updated", repo.Updated.String()); err != nil {
+		return err
+	}
+	if err := d.Set(repoIssues, repo.HasIssues); err != nil {
+		return err
+	}
+	if err := d.Set(repoWiki, repo.HasWiki); err != nil {
+		return err
+	}
+	if err := d.Set(repoPrs, repo.HasPullRequests); err != nil {
+		return err
+	}
+	if err := d.Set(repoProjects, repo.HasProjects); err != nil {
+		return err
+	}
+	if err := d.Set(repoIgnoreWhitespace, repo.IgnoreWhitespaceConflicts); err != nil {
+		return err
+	}
+	if err := d.Set(repoAllowMerge, repo.AllowMerge); err != nil {
+		return err
+	}
+	if err := d.Set(repoAllowRebase, repo.AllowRebase); err != nil {
+		return err
+	}
+	if err := d.Set(repoAllowRebaseMerge, repo.AllowRebaseMerge); err != nil {
+		return err
+	}
+	if err := d.Set(repoAllowSquash, repo.AllowSquash); err != nil {
+		return err
+	}
+	if err := d.Set(repoArchived, repo.Archived); err != nil {
+		return err
+	}
+	if err := d.Set(repoDefaultMergeStyle, string(repo.DefaultMergeStyle)); err != nil {
+		return err
+	}
 	if repo.Mirror {
-		d.Set(migrationMirrorInterval, repo.MirrorInterval)
+		if err := d.Set(migrationMirrorInterval, repo.MirrorInterval); err != nil {
+			return err
+		}
 	} else {
-		d.Set(migrationMirrorInterval, "")
+		if err := d.Set(migrationMirrorInterval, ""); err != nil {
+			return err
+		}
 	}
 	if repo.Permissions != nil {
-		d.Set("permission_admin", repo.Permissions.Admin)
-		d.Set("permission_push", repo.Permissions.Push)
-		d.Set("permission_pull", repo.Permissions.Pull)
+		if err := d.Set("permission_admin", repo.Permissions.Admin); err != nil {
+			return err
+		}
+		if err := d.Set("permission_push", repo.Permissions.Push); err != nil {
+			return err
+		}
+		if err := d.Set("permission_pull", repo.Permissions.Pull); err != nil {
+			return err
+		}
 	}
 
 	return
@@ -483,10 +539,10 @@ func setRepoResourceData(repo *gitea.Repository, d *schema.ResourceData) (err er
 
 func resourceGiteaRepository() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceRepoRead,
-		Create: resourceRepoCreate,
-		Update: resourceRepoUpdate,
-		Delete: resourceRepoDelete,
+		ReadContext:   resourceRepoRead,
+		CreateContext: resourceRepoCreate,
+		UpdateContext: resourceRepoUpdate,
+		DeleteContext: resourceRepoDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

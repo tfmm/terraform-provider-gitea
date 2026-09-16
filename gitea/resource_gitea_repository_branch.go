@@ -1,11 +1,13 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -29,12 +31,13 @@ func resourceRepoBranchIdParts(d *schema.ResourceData) (hasId bool, repoId int64
 	return true, repoId, branchId, err
 }
 
-func resourceRepoBranchRead(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepoBranchRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	hasId, repoId, branchId, err := resourceRepoBranchIdParts(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if !hasId {
 		d.SetId("")
@@ -47,7 +50,7 @@ func resourceRepoBranchRead(d *schema.ResourceData, meta interface{}) (err error
 			d.SetId("")
 			return nil
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
@@ -57,22 +60,23 @@ func resourceRepoBranchRead(d *schema.ResourceData, meta interface{}) (err error
 			d.SetId("")
 			return nil
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	err = setRepoBranchResourceData(branch, repoId, d)
 
-	return err
+	return diag.FromErr(err)
 }
 
-func resourceRepoBranchCreate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepoBranchCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	repo, _, err := client.GetRepoByID(int64(d.Get(repoBranchRepo).(int)))
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	rb, _, err := client.CreateBranch(repo.Owner.UserName, repo.Name, gitea.CreateBranchOption{
@@ -80,20 +84,21 @@ func resourceRepoBranchCreate(d *schema.ResourceData, meta interface{}) (err err
 	})
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(fmt.Sprintf("%d/%s", repo.ID, d.Get(repoBranchName).(string)))
 
 	err = setRepoBranchResourceData(rb, repo.ID, d)
-	return err
+	return diag.FromErr(err)
 }
 
-func resourceRepoBranchDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepoBranchDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 	hasId, repoId, branchId, err := resourceRepoBranchIdParts(d)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	if !hasId {
 		d.SetId("")
@@ -106,7 +111,7 @@ func resourceRepoBranchDelete(d *schema.ResourceData, meta interface{}) (err err
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	deleted, resp, err := client.DeleteRepoBranch(repo.Owner.UserName, repo.Name, branchId)
@@ -115,25 +120,29 @@ func resourceRepoBranchDelete(d *schema.ResourceData, meta interface{}) (err err
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 	if !deleted {
-		return fmt.Errorf("branch %q was not deleted", branchId)
+		return diag.FromErr(fmt.Errorf("branch %q was not deleted", branchId))
 	}
 	return nil
 }
 
 func setRepoBranchResourceData(rb *gitea.Branch, repoId int64, d *schema.ResourceData) (err error) {
-	d.Set(repoBranchName, rb.Name)
-	d.Set(repoBranchRepo, repoId)
+	if err := d.Set(repoBranchName, rb.Name); err != nil {
+		return err
+	}
+	if err := d.Set(repoBranchRepo, repoId); err != nil {
+		return err
+	}
 	return
 }
 
 func resourceGiteaRepositoryBranch() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceRepoBranchRead,
-		Create: resourceRepoBranchCreate,
-		Delete: resourceRepoBranchDelete,
+		ReadContext:   resourceRepoBranchRead,
+		CreateContext: resourceRepoBranchCreate,
+		DeleteContext: resourceRepoBranchDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

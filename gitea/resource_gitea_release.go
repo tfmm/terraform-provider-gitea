@@ -7,14 +7,15 @@ import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceReleaseRead(d *schema.ResourceData, meta interface{}) error {
+func resourceReleaseRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	user := d.Get("user").(string)
@@ -26,20 +27,31 @@ func resourceReleaseRead(d *schema.ResourceData, meta interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
-
-	d.Set("tag_name", release.TagName)
-	d.Set("target_commitish", release.Target)
-	d.Set("title", release.Title)
-	d.Set("note", release.Note)
-	d.Set("draft", release.IsDraft)
-	d.Set("prerelease", release.IsPrerelease)
+	if err := d.Set("tag_name", release.TagName); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("target_commitish", release.Target); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("title", release.Title); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("note", release.Note); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("draft", release.IsDraft); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("prerelease", release.IsPrerelease); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
 
-func resourceReleaseCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceReleaseCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
@@ -55,18 +67,18 @@ func resourceReleaseCreate(d *schema.ResourceData, meta interface{}) error {
 
 	release, _, err := client.CreateRelease(user, repo, opts)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(release.ID, 10))
-	return resourceReleaseRead(d, meta)
+	return resourceReleaseRead(ctx, d, meta)
 }
 
-func resourceReleaseUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceReleaseUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	user := d.Get("user").(string)
@@ -86,40 +98,44 @@ func resourceReleaseUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	_, _, err = client.EditRelease(user, repo, id, opts)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return resourceReleaseRead(d, meta)
+	return resourceReleaseRead(ctx, d, meta)
 }
 
-func resourceReleaseDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceReleaseDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
 
 	_, err = client.DeleteRelease(user, repo, id)
-	return err
+	return diag.FromErr(err)
 }
 
 func resourceGiteaRelease() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceReleaseRead,
-		Create: resourceReleaseCreate,
-		Update: resourceReleaseUpdate,
-		Delete: resourceReleaseDelete,
+		ReadContext:   resourceReleaseRead,
+		CreateContext: resourceReleaseCreate,
+		UpdateContext: resourceReleaseUpdate,
+		DeleteContext: resourceReleaseDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
 				if len(parts) != 3 {
 					return nil, fmt.Errorf("unexpected ID format (%q), expected <user>/<repo>/<release_id>", d.Id())
 				}
-				d.Set("user", parts[0])
-				d.Set("repo", parts[1])
+				if err := d.Set("user", parts[0]); err != nil {
+					return nil, err
+				}
+				if err := d.Set("repo", parts[1]); err != nil {
+					return nil, err
+				}
 				d.SetId(parts[2])
 				return []*schema.ResourceData{d}, nil
 			},

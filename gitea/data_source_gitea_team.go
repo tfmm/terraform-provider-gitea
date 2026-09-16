@@ -1,16 +1,18 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGiteaTeam() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaTeamRead,
+		ReadContext: dataSourceGiteaTeamRead,
 		Schema: map[string]*schema.Schema{
 			"id": {
 				Type:     schema.TypeInt,
@@ -58,25 +60,37 @@ func dataSourceGiteaTeam() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaTeamRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaTeamRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	id := int64(d.Get("id").(int))
 
 	team, _, err := client.GetTeam(id)
 	if err != nil {
-		return fmt.Errorf("unable to retrieve team %d: %w", id, err)
+		return diag.FromErr(fmt.Errorf("unable to retrieve team %d: %w", id, err))
 	}
 
 	d.SetId(strconv.FormatInt(team.ID, 10))
-	d.Set("name", team.Name)
-	d.Set("description", team.Description)
-	d.Set("permission", string(team.Permission))
-	d.Set("can_create_repos", team.CanCreateOrgRepo)
-	d.Set("include_all_repositories", team.IncludesAllRepositories)
+	if err := d.Set("name", team.Name); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("description", team.Description); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("permission", string(team.Permission)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("can_create_repos", team.CanCreateOrgRepo); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("include_all_repositories", team.IncludesAllRepositories); err != nil {
+		return diag.FromErr(err)
+	}
 
 	if team.Organization != nil {
-		d.Set("organisation", team.Organization.UserName)
+		if err := d.Set("organisation", team.Organization.UserName); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	units := make([]string, len(team.Units))
@@ -84,11 +98,11 @@ func dataSourceGiteaTeamRead(d *schema.ResourceData, meta interface{}) error {
 		units[i] = string(u)
 	}
 	if err := d.Set("units", units); err != nil {
-		return fmt.Errorf("failed to set units: %w", err)
+		return diag.FromErr(fmt.Errorf("failed to set units: %w", err))
 	}
 
 	if err := d.Set("units_map", team.UnitsMap); err != nil {
-		return fmt.Errorf("failed to set units_map: %w", err)
+		return diag.FromErr(fmt.Errorf("failed to set units_map: %w", err))
 	}
 
 	return nil

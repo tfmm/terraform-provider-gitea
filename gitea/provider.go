@@ -1,9 +1,11 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -138,7 +140,7 @@ func Provider() *schema.Provider {
 			"gitea_repository_topics":                 resourceGiteaRepositoryTopics(),
 		},
 
-		ConfigureFunc: providerConfigure,
+		ConfigureContextFunc: providerConfigure,
 	}
 }
 
@@ -155,7 +157,7 @@ func init() {
 	}
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 	config := Config{
 		Token:      d.Get("token").(string),
 		Username:   d.Get("username").(string),
@@ -165,7 +167,11 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		Insecure:   d.Get("insecure").(bool),
 	}
 
-	return config.Client()
+	client, err := config.Client()
+	if err != nil {
+		return nil, diag.FromErr(err)
+	}
+	return client, nil
 }
 
 func validateAPIURLVersion(value interface{}, key string) (ws []string, es []error) {

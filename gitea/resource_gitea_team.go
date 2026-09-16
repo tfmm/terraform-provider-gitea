@@ -1,6 +1,7 @@
 package gitea
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
@@ -8,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -22,10 +24,14 @@ const (
 	TeamRepositories        string = "repositories"
 )
 
-func resourceTeamRead(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceTeamRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	var resp *gitea.Response
 	var team *gitea.Team
@@ -37,7 +43,7 @@ func resourceTeamRead(d *schema.ResourceData, meta interface{}) (err error) {
 			d.SetId("")
 			return nil
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
@@ -45,21 +51,22 @@ func resourceTeamRead(d *schema.ResourceData, meta interface{}) (err error) {
 	if !team.IncludesAllRepositories {
 		repositories, err = getTeamRepositoryNames(client, team.ID)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	} else if _, ok := d.GetOk(TeamRepositories); ok {
 		repositories, err = getTeamRepositoryNames(client, team.ID)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	err = setTeamResourceData(team, repositories, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceTeamCreate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceTeamCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	var team *gitea.Team
@@ -68,35 +75,39 @@ func resourceTeamCreate(d *schema.ResourceData, meta interface{}) (err error) {
 	team, _, err = client.CreateTeam(d.Get(TeamOrg).(string), opts)
 
 	if err != nil {
-		return
+		return diag.FromErr(err)
 	}
 
 	var repositories []string
 	if !opts.IncludesAllRepositories {
 		err = setTeamRepositories(team, d, meta, false)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 		repositories, err = getTeamRepositoryNames(client, team.ID)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	} else if _, ok := d.GetOk(TeamRepositories); ok {
 		repositories, err = getTeamRepositoryNames(client, team.ID)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	err = setTeamResourceData(team, repositories, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceTeamUpdate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceTeamUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	var resp *gitea.Response
 	var team *gitea.Team
@@ -105,9 +116,9 @@ func resourceTeamUpdate(d *schema.ResourceData, meta interface{}) (err error) {
 
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
-			return resourceTeamCreate(d, meta)
+			return resourceTeamCreate(ctx, d, meta)
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
@@ -116,38 +127,38 @@ func resourceTeamUpdate(d *schema.ResourceData, meta interface{}) (err error) {
 	resp, err = client.EditTeam(id, opts)
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	includeAllRepos := d.Get(TeamIncludeAllReposFlag).(bool)
 	if !includeAllRepos {
 		err = setTeamRepositories(team, d, meta, true)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	team, _, err = client.GetTeam(id)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	var repositories []string
 	if !team.IncludesAllRepositories {
 		repositories, err = getTeamRepositoryNames(client, team.ID)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	} else if _, ok := d.GetOk(TeamRepositories); ok {
 		repositories, err = getTeamRepositoryNames(client, team.ID)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	err = setTeamResourceData(team, repositories, d)
 
-	return
+	return diag.FromErr(err)
 }
 
 func buildCreateTeamOptions(d *schema.ResourceData) gitea.CreateTeamOption {
@@ -310,10 +321,14 @@ func buildUnitsFromSchema(d *schema.ResourceData) []gitea.RepoUnitType {
 	return units
 }
 
-func resourceTeamDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceTeamDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	var resp *gitea.Response
 
@@ -321,30 +336,46 @@ func resourceTeamDelete(d *schema.ResourceData, meta interface{}) (err error) {
 
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
-			return
+			return diag.FromErr(err)
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
-	return
+	return diag.FromErr(err)
 }
 
 func setTeamResourceData(team *gitea.Team, repositories []string, d *schema.ResourceData) (err error) {
 	if team.Organization != nil {
-		d.Set(TeamOrg, team.Organization.UserName)
+		if err := d.Set(TeamOrg, team.Organization.UserName); err != nil {
+			return err
+		}
 	} else if org, ok := d.GetOk(TeamOrg); ok {
-		d.Set(TeamOrg, org.(string))
+		if err := d.Set(TeamOrg, org.(string)); err != nil {
+			return err
+		}
 	}
 	d.SetId(fmt.Sprintf("%d", team.ID))
-	d.Set(TeamCreateRepoFlag, team.CanCreateOrgRepo)
-	d.Set(TeamDescription, team.Description)
-	d.Set(TeamName, team.Name)
-	if _, hasUnitsMap := d.GetOk("units_map"); !hasUnitsMap || d.Get(TeamPermissions).(string) != "" {
-		d.Set(TeamPermissions, string(team.Permission))
+	if err := d.Set(TeamCreateRepoFlag, team.CanCreateOrgRepo); err != nil {
+		return err
 	}
-	d.Set(TeamIncludeAllReposFlag, team.IncludesAllRepositories)
-	d.Set(TeamUnits, fmt.Sprintf("%v", team.Units))
+	if err := d.Set(TeamDescription, team.Description); err != nil {
+		return err
+	}
+	if err := d.Set(TeamName, team.Name); err != nil {
+		return err
+	}
+	if _, hasUnitsMap := d.GetOk("units_map"); !hasUnitsMap || d.Get(TeamPermissions).(string) != "" {
+		if err := d.Set(TeamPermissions, string(team.Permission)); err != nil {
+			return err
+		}
+	}
+	if err := d.Set(TeamIncludeAllReposFlag, team.IncludesAllRepositories); err != nil {
+		return err
+	}
+	if err := d.Set(TeamUnits, fmt.Sprintf("%v", team.Units)); err != nil {
+		return err
+	}
 	if v, ok := d.GetOk("units_map"); ok {
 		configMap := v.(map[string]interface{})
 		stateMap := make(map[string]string)
@@ -376,13 +407,19 @@ func setTeamResourceData(team *gitea.Team, repositories []string, d *schema.Reso
 				stateMap[k] = "none"
 			}
 		}
-		d.Set("units_map", stateMap)
+		if err := d.Set("units_map", stateMap); err != nil {
+			return err
+		}
 	} else {
-		d.Set("units_map", nil)
+		if err := d.Set("units_map", nil); err != nil {
+			return err
+		}
 	}
 	if team.IncludesAllRepositories && len(repositories) == 0 {
 		if _, ok := d.GetOk(TeamRepositories); !ok {
-			d.Set(TeamRepositories, nil)
+			if err := d.Set(TeamRepositories, nil); err != nil {
+				return err
+			}
 			return
 		}
 	}
@@ -404,7 +441,9 @@ func setTeamResourceData(team *gitea.Team, repositories []string, d *schema.Reso
 				}
 			}
 			if same {
-				d.Set(TeamRepositories, cfgSlice)
+				if err := d.Set(TeamRepositories, cfgSlice); err != nil {
+					return err
+				}
 				matchedCfg = true
 			}
 		}
@@ -412,7 +451,9 @@ func setTeamResourceData(team *gitea.Team, repositories []string, d *schema.Reso
 	if !matchedCfg {
 		sortedRepos := append([]string(nil), repositories...)
 		sort.Strings(sortedRepos)
-		d.Set(TeamRepositories, stringSliceToInterfaceSlice(sortedRepos))
+		if err := d.Set(TeamRepositories, stringSliceToInterfaceSlice(sortedRepos)); err != nil {
+			return err
+		}
 	}
 
 	return
@@ -509,10 +550,10 @@ func getTeamRepositoryNames(client *gitea.Client, teamID int64) ([]string, error
 
 func resourceGiteaTeam() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceTeamRead,
-		Create: resourceTeamCreate,
-		Update: resourceTeamUpdate,
-		Delete: resourceTeamDelete,
+		ReadContext:   resourceTeamRead,
+		CreateContext: resourceTeamCreate,
+		UpdateContext: resourceTeamUpdate,
+		DeleteContext: resourceTeamDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},
@@ -626,8 +667,6 @@ func unitsDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
 	}
 	return false
 }
-
-
 
 func setTeamRepositories(team *gitea.Team, d *schema.ResourceData, meta interface{}, update bool) (err error) {
 	client := meta.(*gitea.Client)

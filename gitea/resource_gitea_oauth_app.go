@@ -1,10 +1,12 @@
 package gitea
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -20,10 +22,10 @@ var errOauth2AppNotFound = errors.New("oauth app not found")
 
 func resourceGiteaOauthApp() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceOauth2AppRead,
-		Create: resourceOauth2AppUpcreate,
-		Update: resourceOauth2AppUpcreate,
-		Delete: resourceOauth2AppDelete,
+		ReadContext:   resourceOauth2AppRead,
+		CreateContext: resourceOauth2AppUpcreate,
+		UpdateContext: resourceOauth2AppUpcreate,
+		DeleteContext: resourceOauth2AppDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
@@ -82,13 +84,14 @@ func CollapseStringList(strlist []string) []interface{} {
 	return res
 }
 
-func resourceOauth2AppUpcreate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceOauth2AppUpcreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	redirectURIsSchema, redirectURIsSchemaOk := d.Get(oauth2KeyRedirectURIs).(*schema.Set)
 
 	if !redirectURIsSchemaOk {
-		return fmt.Errorf("attribute %s must be set to a set of strings", oauth2KeyRedirectURIs)
+		return diag.FromErr(fmt.Errorf("attribute %s must be set to a set of strings", oauth2KeyRedirectURIs))
 	}
 
 	redirectURIs := ExpandStringList(redirectURIsSchema.List())
@@ -96,13 +99,13 @@ func resourceOauth2AppUpcreate(d *schema.ResourceData, meta interface{}) (err er
 	name, nameOk := d.Get(oauth2KeyName).(string)
 
 	if !nameOk {
-		return fmt.Errorf("attribute %s must be set and must be a string", oauth2KeyName)
+		return diag.FromErr(fmt.Errorf("attribute %s must be set and must be a string", oauth2KeyName))
 	}
 
 	confidentialClient, confidentialClientOk := d.Get(oauth2KeyConfidentialClient).(bool)
 
 	if !confidentialClientOk {
-		return fmt.Errorf("attribute %s must be set and must be a bool", oauth2KeyConfidentialClient)
+		return diag.FromErr(fmt.Errorf("attribute %s must be set and must be a bool", oauth2KeyConfidentialClient))
 	}
 
 	opts := gitea.CreateOauth2Option{
@@ -119,19 +122,19 @@ func resourceOauth2AppUpcreate(d *schema.ResourceData, meta interface{}) (err er
 		oauth2, err = searchOauth2AppByClientId(client, d.Id())
 
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 
 		oauth2, _, err = client.UpdateOauth2(oauth2.ID, opts)
 	}
 
 	if err != nil {
-		return
+		return diag.FromErr(err)
 	}
 
 	err = setOAuth2ResourceData(oauth2, d)
 
-	return
+	return diag.FromErr(err)
 }
 
 func searchOauth2AppByClientId(c *gitea.Client, id string) (res *gitea.Oauth2, err error) {
@@ -161,7 +164,8 @@ func searchOauth2AppByClientId(c *gitea.Client, id string) (res *gitea.Oauth2, e
 	}
 }
 
-func resourceOauth2AppRead(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceOauth2AppRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	app, err := searchOauth2AppByClientId(client, d.Id())
@@ -171,15 +175,16 @@ func resourceOauth2AppRead(d *schema.ResourceData, meta interface{}) (err error)
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setOAuth2ResourceData(app, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceOauth2AppDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceOauth2AppDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	app, err := searchOauth2AppByClientId(client, d.Id())
@@ -189,12 +194,12 @@ func resourceOauth2AppDelete(d *schema.ResourceData, meta interface{}) (err erro
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	_, err = client.DeleteOauth2(app.ID)
 
-	return
+	return diag.FromErr(err)
 }
 
 func setOAuth2ResourceData(app *gitea.Oauth2, d *schema.ResourceData) (err error) {
@@ -213,8 +218,11 @@ func setOAuth2ResourceData(app *gitea.Oauth2, d *schema.ResourceData) (err error
 	}
 
 	if app.ClientSecret != "" {
-		// Gitea API only reports client secrets if the resource is newly created
-		d.Set(oauth2KeyClientSecret, app.ClientSecret)
+		if err :=
+			// Gitea API only reports client secrets if the resource is newly created
+			d.Set(oauth2KeyClientSecret, app.ClientSecret); err != nil {
+			return err
+		}
 	}
 
 	return

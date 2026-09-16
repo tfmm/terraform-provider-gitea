@@ -1,9 +1,11 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -14,7 +16,8 @@ const (
 	GitHookContent string = "content"
 )
 
-func resourceGitHookRead(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceGitHookRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	user := d.Get(GitHookUser).(string)
@@ -24,15 +27,16 @@ func resourceGitHookRead(d *schema.ResourceData, meta interface{}) (err error) {
 	gitHook, _, err := client.GetRepoGitHook(user, repo, name)
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setGitHookResourceData(user, repo, gitHook, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceGitHookUpdate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceGitHookUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	user := d.Get(GitHookUser).(string)
@@ -46,22 +50,23 @@ func resourceGitHookUpdate(d *schema.ResourceData, meta interface{}) (err error)
 	_, err = client.EditRepoGitHook(user, repo, name, opts)
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// Get gitHook ourselves, EditRepoGitHook does not return it
 	gitHook, _, err := client.GetRepoGitHook(user, repo, name)
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setGitHookResourceData(user, repo, gitHook, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceGitHookDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceGitHookDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	user := d.Get(GitHookUser).(string)
@@ -70,24 +75,32 @@ func resourceGitHookDelete(d *schema.ResourceData, meta interface{}) (err error)
 
 	_, err = client.DeleteRepoGitHook(user, repo, name)
 
-	return
+	return diag.FromErr(err)
 }
 
 func setGitHookResourceData(user string, repo string, gitHook *gitea.GitHook, d *schema.ResourceData) (err error) {
 	d.SetId(fmt.Sprintf("%s/%s/%s", user, repo, gitHook.Name))
-	d.Set(GitHookUser, user)
-	d.Set(GitHookRepo, repo)
-	d.Set(GitHookName, gitHook.Name)
-	d.Set(GitHookContent, gitHook.Content)
+	if err := d.Set(GitHookUser, user); err != nil {
+		return err
+	}
+	if err := d.Set(GitHookRepo, repo); err != nil {
+		return err
+	}
+	if err := d.Set(GitHookName, gitHook.Name); err != nil {
+		return err
+	}
+	if err := d.Set(GitHookContent, gitHook.Content); err != nil {
+		return err
+	}
 	return
 }
 
 func resourceGiteaGitHook() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceGitHookRead,
-		Create: resourceGitHookUpdate, // All hooks already exist, just empty and disabled
-		Update: resourceGitHookUpdate,
-		Delete: resourceGitHookDelete,
+		ReadContext:   resourceGitHookRead,
+		CreateContext: resourceGitHookUpdate, // All hooks already exist, just empty and disabled
+		UpdateContext: resourceGitHookUpdate,
+		DeleteContext: resourceGitHookDelete,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,

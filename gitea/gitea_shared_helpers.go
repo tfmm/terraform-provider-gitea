@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -68,6 +69,63 @@ func actionScopeSchema() map[string]*schema.Schema {
 			Description: "The repository name when `scope = \"repo\"`.",
 		},
 	}
+}
+
+const (
+	secretValueField          = "secret_value"
+	secretValueWOField        = "secret_value_wo"
+	secretValueWOVersionField = "secret_value_wo_version"
+)
+
+// writeOnlySecretValueSchema returns the secret_value / secret_value_wo /
+// secret_value_wo_version schema fragment shared by every Actions secret
+// resource. Exactly one of secret_value or secret_value_wo must be set.
+// secret_value_wo is never persisted to the terraform state; bump
+// secret_value_wo_version whenever its value changes, since Terraform has
+// no prior value to diff a write-only attribute against on its own.
+func writeOnlySecretValueSchema(description string) map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		secretValueField: {
+			Type:         schema.TypeString,
+			Optional:     true,
+			Sensitive:    true,
+			Description:  description,
+			ExactlyOneOf: []string{secretValueField, secretValueWOField},
+		},
+		secretValueWOField: {
+			Type:      schema.TypeString,
+			Optional:  true,
+			Sensitive: true,
+			WriteOnly: true,
+			Description: "Write-only alternative to `" + secretValueField + "`, never stored in the terraform state. " +
+				"Bump `" + secretValueWOVersionField + "` whenever this value changes so it gets re-applied.",
+			ExactlyOneOf: []string{secretValueField, secretValueWOField},
+		},
+		secretValueWOVersionField: {
+			Type:        schema.TypeInt,
+			Optional:    true,
+			Description: "Arbitrary version number to bump whenever `" + secretValueWOField + "` changes. Ignored when using `" + secretValueField + "`.",
+		},
+	}
+}
+
+// resolveSecretValue returns the effective secret value for a create/update
+// call: the plain secret_value if set, otherwise the current secret_value_wo
+// pulled from the raw config (write-only values always read back empty via
+// d.Get/d.GetOk, since Terraform never persists them to state).
+func resolveSecretValue(d *schema.ResourceData) (string, error) {
+	if v, ok := d.GetOk(secretValueField); ok {
+		return v.(string), nil
+	}
+
+	val, diags := d.GetRawConfigAt(cty.GetAttrPath(secretValueWOField))
+	if diags.HasError() {
+		return "", fmt.Errorf("reading %s: %s", secretValueWOField, diags[0].Summary)
+	}
+	if val.IsNull() {
+		return "", fmt.Errorf("one of %s or %s must be set", secretValueField, secretValueWOField)
+	}
+	return val.AsString(), nil
 }
 
 func mergeSchemaMaps(maps ...map[string]*schema.Schema) map[string]*schema.Schema {

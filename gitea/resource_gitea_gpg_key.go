@@ -20,6 +20,9 @@ func resourceGPGKeyRead(ctx context.Context, d *schema.ResourceData, meta interf
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return diag.FromErr(fmt.Errorf("error reading gpg key: invalid id: %w", err))
+	}
 
 	var resp *gitea.Response
 	var pubKey *gitea.GPGKey
@@ -85,8 +88,12 @@ func resourceGPGKeyDelete(ctx context.Context, d *schema.ResourceData, meta inte
 
 func setGPGKeyResourceData(pubKey *gitea.GPGKey, d *schema.ResourceData) error {
 	d.SetId(fmt.Sprintf("%d", pubKey.ID))
-	d.Set(GPGKeyArmored, pubKey.PublicKey)
-	d.Set(GPGKeyGPGId, pubKey.KeyID)
+	if err := d.Set(GPGKeyArmored, pubKey.PublicKey); err != nil {
+		return err
+	}
+	if err := d.Set(GPGKeyGPGId, pubKey.KeyID); err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -1,16 +1,18 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGiteaTeamMembers() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaTeamMembersRead,
+		ReadContext: dataSourceGiteaTeamMembersRead,
 		Schema: map[string]*schema.Schema{
 			"team_id": {
 				Type:        schema.TypeInt,
@@ -50,7 +52,7 @@ func dataSourceGiteaTeamMembers() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaTeamMembersRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaTeamMembersRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	teamID := int64(d.Get("team_id").(int))
@@ -62,12 +64,12 @@ func dataSourceGiteaTeamMembersRead(d *schema.ResourceData, meta interface{}) er
 		return items, err
 	})
 	if err != nil {
-		return fmt.Errorf("unable to list members for team %d: %w", teamID, err)
+		return diag.FromErr(fmt.Errorf("unable to list members for team %d: %w", teamID, err))
 	}
 
 	d.SetId(fmt.Sprintf("team:%s:members", strconv.FormatInt(teamID, 10)))
 	if err := d.Set("members", flattenUsers(members)); err != nil {
-		return fmt.Errorf("failed to set members: %w", err)
+		return diag.FromErr(fmt.Errorf("failed to set members: %w", err))
 	}
 
 	return nil

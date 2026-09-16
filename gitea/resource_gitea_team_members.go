@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -85,7 +86,8 @@ func teamMembersDiff(current, desired []string) (toAdd, toRemove []string) {
 	return toAdd, toRemove
 }
 
-func resourceTeamMembersCreate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceTeamMembersCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 	team_id := d.Get(membersTeamID).(int)
 
@@ -96,7 +98,7 @@ func resourceTeamMembersCreate(d *schema.ResourceData, meta interface{}) (err er
 
 	currentMembers, err := getTeamMembers(team_id, meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	toAdd, toRemove := teamMembersDiff(currentMembers, desiredMembers)
@@ -104,81 +106,87 @@ func resourceTeamMembersCreate(d *schema.ResourceData, meta interface{}) (err er
 	for _, username := range toRemove {
 		_, err = client.RemoveTeamMember(int64(team_id), username)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	for _, username := range toAdd {
 		_, err = client.AddTeamMember(int64(team_id), username)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	memberNames, err := getTeamMembers(team_id, meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setTeamMembersData(team_id, memberNames, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceTeamMembersRead(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceTeamMembersRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	team_id, err := parseTeamMembersID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	memberNames, err := getTeamMembers(team_id, meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setTeamMembersData(team_id, memberNames, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceTeamMembersDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceTeamMembersDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 	team_id, err := parseTeamMembersID(d.Id())
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	var memberNames []string
 
 	memberNames, err = getTeamMembers(team_id, meta)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	// Delete all memberships
 	for _, username := range memberNames {
 		_, err = client.RemoveTeamMember(int64(team_id), username)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
-	return
+	return diag.FromErr(err)
 }
 
 func setTeamMembersData(team_id int, memberNames []string, d *schema.ResourceData) (err error) {
 	d.SetId(fmt.Sprintf("%d", team_id))
-	d.Set(membersTeamID, team_id)
-	d.Set(membersTeamMembers, memberNames)
+	if err := d.Set(membersTeamID, team_id); err != nil {
+		return err
+	}
+	if err := d.Set(membersTeamMembers, memberNames); err != nil {
+		return err
+	}
 
 	return
 }
 
 func resourceGiteaTeamMembers() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceTeamMembersRead,
-		Create: resourceTeamMembersCreate,
-		Delete: resourceTeamMembersDelete,
+		ReadContext:   resourceTeamMembersRead,
+		CreateContext: resourceTeamMembersCreate,
+		DeleteContext: resourceTeamMembersDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				teamID, err := parseTeamMembersID(d.Id())

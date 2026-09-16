@@ -1,17 +1,19 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGiteaOrg() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaOrgRead,
+		ReadContext: dataSourceGiteaOrgRead,
 		Schema: map[string]*schema.Schema{
 			"id": {
 				Type:     schema.TypeInt,
@@ -51,7 +53,7 @@ func dataSourceGiteaOrg() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaOrgRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaOrgRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	var org *gitea.Organization
@@ -62,23 +64,38 @@ func dataSourceGiteaOrgRead(d *schema.ResourceData, meta interface{}) error {
 	nameData, nameOk := d.GetOk("name")
 
 	if !nameOk {
-		return fmt.Errorf("name of org must be passed")
+		return diag.FromErr(fmt.Errorf("name of org must be passed"))
 	}
 	name := strings.ToLower(nameData.(string))
 
 	org, _, err = client.GetOrg(name)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-
-	d.Set("id", org.ID)
-	d.Set("name", org.UserName)
-	d.Set("full_name", org.FullName)
-	d.Set("avatar_url", org.AvatarURL)
-	d.Set("location", org.Location)
-	d.Set("website", org.Website)
-	d.Set("description", org.Description)
-	d.Set("visibility", org.Visibility)
+	if err := d.Set("id", org.ID); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("name", org.UserName); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("full_name", org.FullName); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("avatar_url", org.AvatarURL); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("location", org.Location); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("website", org.Website); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("description", org.Description); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("visibility", org.Visibility); err != nil {
+		return diag.FromErr(err)
+	}
 
 	d.SetId(fmt.Sprintf("%d", org.ID))
 

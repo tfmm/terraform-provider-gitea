@@ -1,17 +1,19 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGiteaUser() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaUserRead,
+		ReadContext: dataSourceGiteaUserRead,
 		Schema: map[string]*schema.Schema{
 			"id": {
 				Type:     schema.TypeInt,
@@ -55,7 +57,7 @@ func dataSourceGiteaUser() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaUserRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaUserRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	var user *gitea.User
@@ -68,26 +70,43 @@ func dataSourceGiteaUserRead(d *schema.ResourceData, meta interface{}) error {
 	if !usernameOk {
 		user, _, err = client.GetMyUserInfo()
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	} else {
 		username := strings.ToLower(usernameData.(string))
 
 		user, _, err = client.GetUserInfo(username)
 		if err != nil {
-			return err
+			return diag.FromErr(err)
 		}
 	}
-
-	d.Set("id", user.ID)
-	d.Set("username", user.UserName)
-	d.Set("email", user.Email)
-	d.Set("full_name", user.FullName)
-	d.Set("is_admin", user.IsAdmin)
-	d.Set("created", user.Created)
-	d.Set("avatar_url", user.AvatarURL)
-	d.Set("last_login", user.LastLogin)
-	d.Set("language", user.Language)
+	if err := d.Set("id", user.ID); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("username", user.UserName); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("email", user.Email); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("full_name", user.FullName); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("is_admin", user.IsAdmin); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("created", timeToString(user.Created)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("avatar_url", user.AvatarURL); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("last_login", timeToString(user.LastLogin)); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("language", user.Language); err != nil {
+		return diag.FromErr(err)
+	}
 
 	d.SetId(fmt.Sprintf("%d", user.ID))
 

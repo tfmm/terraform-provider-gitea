@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -50,7 +51,8 @@ const (
 	repoBPCreatedAt string = "created_at"
 )
 
-func resourceRepositoryBranchProtectionRead(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepositoryBranchProtectionRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	user := d.Get(repoBPUsername).(string)
@@ -61,14 +63,14 @@ func resourceRepositoryBranchProtectionRead(d *schema.ResourceData, meta interfa
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
 			d.SetId("")
-			return
+			return diag.FromErr(err)
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	err = setRepositoryBranchProtectionData(bp, user, repo, d)
-	return err
+	return diag.FromErr(err)
 }
 
 func generateWhitelist(d *schema.ResourceData, listname string) (enabled bool, users []string, teams []string) {
@@ -99,7 +101,8 @@ func generateWhitelist(d *schema.ResourceData, listname string) (enabled bool, u
 	return enabled, users, teams
 }
 
-func resourceRepositoryBranchProtectionCreate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepositoryBranchProtectionCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	user := d.Get(repoBPUsername).(string)
@@ -152,14 +155,15 @@ func resourceRepositoryBranchProtectionCreate(d *schema.ResourceData, meta inter
 
 	bp, _, err := client.CreateBranchProtection(user, repo, bpOption)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setRepositoryBranchProtectionData(bp, user, repo, d)
-	return err
+	return diag.FromErr(err)
 }
 
-func resourceRepositoryBranchProtectionUpdate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepositoryBranchProtectionUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	user := d.Get(repoBPUsername).(string)
@@ -223,14 +227,15 @@ func resourceRepositoryBranchProtectionUpdate(d *schema.ResourceData, meta inter
 
 	bp, _, err := client.EditBranchProtection(user, repo, rule_name, bpOption)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setRepositoryBranchProtectionData(bp, user, repo, d)
-	return err
+	return diag.FromErr(err)
 }
 
-func resourceRepositoryBranchProtectionDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepositoryBranchProtectionDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	user := d.Get(repoBPUsername).(string)
@@ -239,40 +244,93 @@ func resourceRepositoryBranchProtectionDelete(d *schema.ResourceData, meta inter
 
 	_, err = client.DeleteBranchProtection(user, repo, rule_name)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	return err
+	return diag.FromErr(err)
 }
 
 func setRepositoryBranchProtectionData(bp *gitea.BranchProtection, user string, repo string, d *schema.ResourceData) (err error) {
 	d.SetId(bp.RuleName)
-	d.Set(repoBPUsername, user)
-	d.Set(repoBPName, repo)
-	d.Set(repoBPProtectedFilePatterns, bp.ProtectedFilePatterns)
-	d.Set(repoBPUnprotectedFilePatterns, bp.UnprotectedFilePatterns)
-	d.Set(repoBPEnablePush, bp.EnablePush)
-	d.Set(repoBPEnablePushWhitelist, bp.EnablePushWhitelist)
-	d.Set(repoBPPushWhitelistUsers, bp.PushWhitelistUsernames)
-	d.Set(repoBPPushWhitelistTeams, bp.PushWhitelistTeams)
-	d.Set(repoBPPushWhitelistDeployKeys, bp.PushWhitelistDeployKeys)
-	d.Set(repoBPRequireSignedCommits, bp.RequireSignedCommits)
-	d.Set(repoBPRequiredApprovals, bp.RequiredApprovals)
-	d.Set(repoBPEnableApprovalWhitelist, bp.EnableApprovalsWhitelist)
-	d.Set(repoBPApprovalWhitelistUsers, bp.ApprovalsWhitelistUsernames)
-	d.Set(repoBPApprovalWhitelistTeams, bp.ApprovalsWhitelistTeams)
-	d.Set(repoBPDismissStaleApprovals, bp.DismissStaleApprovals)
-	// d.Set(repoBPIgnoreStaleApprovals, bp.IgnoreStaleApprovals)
-	d.Set(repoBPEnableStatusCheck, bp.EnableStatusCheck)
-	d.Set(repoBPStatusCheckPatterns, bp.StatusCheckContexts)
-	d.Set(repoBPEnableMergeWhitelist, bp.EnableMergeWhitelist)
-	d.Set(repoBPMergeWhitelistUsers, bp.MergeWhitelistUsernames)
-	d.Set(repoBPMergeWhitelistTeams, bp.MergeWhitelistTeams)
-	d.Set(repoBPBlockMergeOnRejectedReviews, bp.BlockOnRejectedReviews)
-	d.Set(repoBPBlockMergeOnOfficialReviewRequests, bp.BlockOnOfficialReviewRequests)
-	d.Set(repoBPBlockMergeOnOutdatedBranch, bp.BlockOnOutdatedBranch)
-	d.Set(repoBPBlockAdminMergeOverride, bp.BlockAdminMergeOverride)
-	d.Set(repoBPUpdatedAt, bp.Updated)
-	d.Set(repoBPCreatedAt, bp.Created)
+	if err := d.Set(repoBPUsername, user); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPName, repo); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPProtectedFilePatterns, bp.ProtectedFilePatterns); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPUnprotectedFilePatterns, bp.UnprotectedFilePatterns); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPEnablePush, bp.EnablePush); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPEnablePushWhitelist, bp.EnablePushWhitelist); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPPushWhitelistUsers, bp.PushWhitelistUsernames); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPPushWhitelistTeams, bp.PushWhitelistTeams); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPPushWhitelistDeployKeys, bp.PushWhitelistDeployKeys); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPRequireSignedCommits, bp.RequireSignedCommits); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPRequiredApprovals, bp.RequiredApprovals); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPEnableApprovalWhitelist, bp.EnableApprovalsWhitelist); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPApprovalWhitelistUsers, bp.ApprovalsWhitelistUsernames); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPApprovalWhitelistTeams, bp.ApprovalsWhitelistTeams); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPDismissStaleApprovals, bp.DismissStaleApprovals); err !=
+		// d.Set(repoBPIgnoreStaleApprovals, bp.IgnoreStaleApprovals)
+		nil {
+		return err
+	}
+	if err := d.Set(repoBPEnableStatusCheck, bp.EnableStatusCheck); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPStatusCheckPatterns, bp.StatusCheckContexts); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPEnableMergeWhitelist, bp.EnableMergeWhitelist); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPMergeWhitelistUsers, bp.MergeWhitelistUsernames); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPMergeWhitelistTeams, bp.MergeWhitelistTeams); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPBlockMergeOnRejectedReviews, bp.BlockOnRejectedReviews); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPBlockMergeOnOfficialReviewRequests, bp.BlockOnOfficialReviewRequests); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPBlockMergeOnOutdatedBranch, bp.BlockOnOutdatedBranch); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPBlockAdminMergeOverride, bp.BlockAdminMergeOverride); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPUpdatedAt, timeToString(bp.Updated)); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPCreatedAt, timeToString(bp.Created)); err != nil {
+		return err
+	}
 
 	return err
 }
@@ -297,10 +355,10 @@ func resourceRepositoryBranchProtectionImport(ctx context.Context, d *schema.Res
 
 func resourceGiteaRepositoryBranchProtection() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceRepositoryBranchProtectionRead,
-		Create: resourceRepositoryBranchProtectionCreate,
-		Update: resourceRepositoryBranchProtectionUpdate,
-		Delete: resourceRepositoryBranchProtectionDelete,
+		ReadContext:   resourceRepositoryBranchProtectionRead,
+		CreateContext: resourceRepositoryBranchProtectionCreate,
+		UpdateContext: resourceRepositoryBranchProtectionUpdate,
+		DeleteContext: resourceRepositoryBranchProtectionDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: resourceRepositoryBranchProtectionImport,
 		},

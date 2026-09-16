@@ -1,10 +1,12 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -14,7 +16,8 @@ const (
 	forkOrganization string = "organization"
 )
 
-func resourceForkCreate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceForkCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	var opts gitea.CreateForkOption
@@ -30,17 +33,18 @@ func resourceForkCreate(d *schema.ResourceData, meta interface{}) (err error) {
 	if err == nil {
 		err = setForkResourceData(repo, client, d)
 	}
-	return err
+	return diag.FromErr(err)
 }
 
-func resourceForkRead(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceForkRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	var resp *gitea.Response
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	repo, resp, err := client.GetRepoByID(id)
@@ -50,22 +54,23 @@ func resourceForkRead(d *schema.ResourceData, meta interface{}) (err error) {
 			d.SetId("")
 			return nil
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	err = setForkResourceData(repo, client, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceForkDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceForkDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	repo, resp, err := client.GetRepoByID(id)
@@ -74,20 +79,20 @@ func resourceForkDelete(d *schema.ResourceData, meta interface{}) (err error) {
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	resp, err = client.DeleteRepo(repo.Owner.UserName, repo.Name)
 
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
-			return
+			return diag.FromErr(err)
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
-	return
+	return diag.FromErr(err)
 }
 
 func setForkResourceData(repo *gitea.Repository, client *gitea.Client, d *schema.ResourceData) (err error) {
@@ -101,8 +106,12 @@ func setForkResourceData(repo *gitea.Repository, client *gitea.Client, d *schema
 		}
 		name = repo.Parent.Name
 	}
-	d.Set(forkOwner, owner)
-	d.Set(forkRepo, name)
+	if err := d.Set(forkOwner, owner); err != nil {
+		return err
+	}
+	if err := d.Set(forkRepo, name); err != nil {
+		return err
+	}
 
 	organization := ""
 	if repo.Owner != nil {
@@ -115,16 +124,18 @@ func setForkResourceData(repo *gitea.Repository, client *gitea.Client, d *schema
 			organization = repo.Owner.UserName
 		}
 	}
-	d.Set(forkOrganization, organization)
+	if err := d.Set(forkOrganization, organization); err != nil {
+		return err
+	}
 
 	return
 }
 
 func resourceGiteaFork() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceForkRead,
-		Create: resourceForkCreate,
-		Delete: resourceForkDelete,
+		ReadContext:   resourceForkRead,
+		CreateContext: resourceForkCreate,
+		DeleteContext: resourceForkDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -29,12 +30,13 @@ const (
 	orgWebhookConfig              string = "config"
 )
 
-func resourceOrgWebhookRead(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceOrgWebhookRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	org := d.Get(orgWebhookOrg).(string)
@@ -45,11 +47,11 @@ func resourceOrgWebhookRead(d *schema.ResourceData, meta interface{}) (err error
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setOrgWebhookData(org, hook, d)
-	return
+	return diag.FromErr(err)
 }
 
 func buildOrgWebhookConfigMap(d *schema.ResourceData) map[string]string {
@@ -96,7 +98,8 @@ func buildOrgWebhookConfigMap(d *schema.ResourceData) map[string]string {
 	return config
 }
 
-func resourceOrgWebhookCreate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceOrgWebhookCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	org := d.Get(orgWebhookOrg).(string)
@@ -115,20 +118,21 @@ func resourceOrgWebhookCreate(d *schema.ResourceData, meta interface{}) (err err
 
 	hook, _, err := client.CreateOrgHook(org, hookOption)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setOrgWebhookData(org, hook, d)
-	return
+	return diag.FromErr(err)
 }
 
-func resourceOrgWebhookUpdate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceOrgWebhookUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	org := d.Get(orgWebhookOrg).(string)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	config := buildOrgWebhookConfigMap(d)
@@ -145,67 +149,96 @@ func resourceOrgWebhookUpdate(d *schema.ResourceData, meta interface{}) (err err
 
 	_, err = client.EditOrgHook(org, id, hookOption)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	hook, _, err := client.GetOrgHook(org, id)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setOrgWebhookData(org, hook, d)
-	return
+	return diag.FromErr(err)
 }
 
-func resourceOrgWebhookDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceOrgWebhookDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	org := d.Get(orgWebhookOrg).(string)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	_, err = client.DeleteOrgHook(org, id)
-	return err
+	return diag.FromErr(err)
 }
 
 func setOrgWebhookData(org string, hook *gitea.Hook, d *schema.ResourceData) (err error) {
 	d.SetId(strconv.FormatInt(hook.ID, 10))
-
-	d.Set(orgWebhookOrg, org)
-	d.Set(orgWebhookType, hook.Type)
-	d.Set(orgWebhookUrl, hookConfigValue(hook, "url"))
-	d.Set(orgWebhookContentType, hookConfigValue(hook, "content_type"))
+	if err := d.Set(orgWebhookOrg, org); err != nil {
+		return err
+	}
+	if err := d.Set(orgWebhookType, hook.Type); err != nil {
+		return err
+	}
+	if err := d.Set(orgWebhookUrl, hookConfigValue(hook, "url")); err != nil {
+		return err
+	}
+	if err := d.Set(orgWebhookContentType, hookConfigValue(hook, "content_type")); err != nil {
+		return err
+	}
 
 	secret := hookConfigValue(hook, "secret")
 	if secret == "" {
 		secret = d.Get(orgWebhookSecret).(string)
 	}
 	if secret != "" {
-		d.Set(orgWebhookSecret, secret)
+		if err := d.Set(orgWebhookSecret, secret); err != nil {
+			return err
+		}
 	}
-
-	d.Set(orgWebhookEvents, hook.Events)
-	d.Set(orgWebhookBranchFilter, hook.BranchFilter)
-	d.Set(orgWebhookActive, hook.Active)
-	d.Set(orgWebhookCreatedAt, hook.Created.Format("2006-01-02T15:04:05Z07:00"))
-	d.Set(orgWebhookAuthorizationHeader, hook.AuthorizationHeader)
+	if err := d.Set(orgWebhookEvents, hook.Events); err != nil {
+		return err
+	}
+	if err := d.Set(orgWebhookBranchFilter, hook.BranchFilter); err != nil {
+		return err
+	}
+	if err := d.Set(orgWebhookActive, hook.Active); err != nil {
+		return err
+	}
+	if err := d.Set(orgWebhookCreatedAt, hook.Created.Format("2006-01-02T15:04:05Z07:00")); err != nil {
+		return err
+	}
+	if err := d.Set(orgWebhookAuthorizationHeader, hook.AuthorizationHeader); err != nil {
+		return err
+	}
 
 	if v := hookConfigValue(hook, "http_method"); v != "" {
-		d.Set(orgWebhookHttpMethod, v)
+		if err := d.Set(orgWebhookHttpMethod, v); err != nil {
+			return err
+		}
 	}
 	if v := hookConfigValue(hook, "channel"); v != "" {
-		d.Set(orgWebhookChannel, v)
+		if err := d.Set(orgWebhookChannel, v); err != nil {
+			return err
+		}
 	}
 	if v := hookConfigValue(hook, "username"); v != "" {
-		d.Set(orgWebhookSlackUsername, v)
+		if err := d.Set(orgWebhookSlackUsername, v); err != nil {
+			return err
+		}
 	}
 	if v := hookConfigValue(hook, "icon_url"); v != "" {
-		d.Set(orgWebhookIconUrl, v)
+		if err := d.Set(orgWebhookIconUrl, v); err != nil {
+			return err
+		}
 	}
 	if v := hookConfigValue(hook, "color"); v != "" {
-		d.Set(orgWebhookColor, v)
+		if err := d.Set(orgWebhookColor, v); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -213,17 +246,19 @@ func setOrgWebhookData(org string, hook *gitea.Hook, d *schema.ResourceData) (er
 
 func resourceGiteaOrgWebhook() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceOrgWebhookRead,
-		Create: resourceOrgWebhookCreate,
-		Update: resourceOrgWebhookUpdate,
-		Delete: resourceOrgWebhookDelete,
+		ReadContext:   resourceOrgWebhookRead,
+		CreateContext: resourceOrgWebhookCreate,
+		UpdateContext: resourceOrgWebhookUpdate,
+		DeleteContext: resourceOrgWebhookDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
 				if len(parts) != 2 {
 					return nil, fmt.Errorf("unexpected ID format (%q), expected <org>/<webhook_id>", d.Id())
 				}
-				d.Set("org", parts[0])
+				if err := d.Set("org", parts[0]); err != nil {
+					return nil, err
+				}
 				d.SetId(parts[1])
 				return []*schema.ResourceData{d}, nil
 			},

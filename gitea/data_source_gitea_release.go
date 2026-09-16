@@ -1,16 +1,18 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGiteaRelease() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaReleaseRead,
+		ReadContext: dataSourceGiteaReleaseRead,
 		Schema: map[string]*schema.Schema{
 			"user": {
 				Type:        schema.TypeString,
@@ -62,7 +64,7 @@ func dataSourceGiteaRelease() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaReleaseRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaReleaseRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
@@ -70,23 +72,35 @@ func dataSourceGiteaReleaseRead(d *schema.ResourceData, meta interface{}) error 
 
 	release, _, err := client.GetRelease(user, repo, id)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(strconv.FormatInt(release.ID, 10))
-	d.Set("tag_name", release.TagName)
-	d.Set("target_commitish", release.Target)
-	d.Set("title", release.Title)
-	d.Set("note", release.Note)
-	d.Set("draft", release.IsDraft)
-	d.Set("prerelease", release.IsPrerelease)
+	if err := d.Set("tag_name", release.TagName); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("target_commitish", release.Target); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("title", release.Title); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("note", release.Note); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("draft", release.IsDraft); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("prerelease", release.IsPrerelease); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
 
 func dataSourceGiteaReleases() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaReleasesRead,
+		ReadContext: dataSourceGiteaReleasesRead,
 		Schema: map[string]*schema.Schema{
 			"user": {
 				Type:        schema.TypeString,
@@ -135,14 +149,14 @@ func dataSourceGiteaReleases() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaReleasesRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaReleasesRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
 
 	releases, _, err := client.ListReleases(user, repo, gitea.ListReleasesOptions{})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	result := make([]map[string]interface{}, 0, len(releases))
@@ -158,7 +172,9 @@ func dataSourceGiteaReleasesRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s/releases", user, repo))
-	d.Set("releases", result)
+	if err := d.Set("releases", result); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }

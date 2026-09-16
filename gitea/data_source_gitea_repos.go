@@ -1,16 +1,18 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGiteaRepos() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaReposRead,
+		ReadContext: dataSourceGiteaReposRead,
 		Schema: map[string]*schema.Schema{
 			"username": {
 				Type:        schema.TypeString,
@@ -49,7 +51,7 @@ func dataSourceGiteaRepos() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaReposRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaReposRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 
 	username := d.Get("username").(string)
@@ -61,7 +63,7 @@ func dataSourceGiteaReposRead(d *schema.ResourceData, meta interface{}) error {
 		return items, err
 	})
 	if err != nil {
-		return fmt.Errorf("unable to list repos for user %q: %w", username, err)
+		return diag.FromErr(fmt.Errorf("unable to list repos for user %q: %w", username, err))
 	}
 
 	result := make([]interface{}, 0, len(repos))
@@ -92,7 +94,7 @@ func dataSourceGiteaReposRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(fmt.Sprintf("user:%s:repos", username))
 	if err := d.Set("repositories", result); err != nil {
-		return fmt.Errorf("failed to set repositories: %w", err)
+		return diag.FromErr(fmt.Errorf("failed to set repositories: %w", err))
 	}
 
 	return nil

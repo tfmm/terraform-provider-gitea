@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -31,12 +32,13 @@ const (
 	repoWebhookConfig              string = "config"
 )
 
-func resourceRepositoryWebhookRead(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepositoryWebhookRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	user := d.Get(repoWebhookUsername).(string)
@@ -46,15 +48,15 @@ func resourceRepositoryWebhookRead(d *schema.ResourceData, meta interface{}) (er
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
 			d.SetId("")
-			return
+			return diag.FromErr(err)
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
 	err = setRepositoryWebhookData(hook, d)
 
-	return
+	return diag.FromErr(err)
 }
 
 func buildWebhookConfigMap(d *schema.ResourceData) map[string]string {
@@ -101,7 +103,8 @@ func buildWebhookConfigMap(d *schema.ResourceData) map[string]string {
 	return config
 }
 
-func resourceRepositoryWebhookCreate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepositoryWebhookCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	user := d.Get(repoWebhookUsername).(string)
@@ -121,22 +124,23 @@ func resourceRepositoryWebhookCreate(d *schema.ResourceData, meta interface{}) (
 
 	hook, _, err := client.CreateRepoHook(user, repo, hookOption)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setRepositoryWebhookData(hook, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceRepositoryWebhookUpdate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepositoryWebhookUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	user := d.Get(repoWebhookUsername).(string)
 	repo := d.Get(repoWebhookName).(string)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	config := buildWebhookConfigMap(d)
@@ -153,35 +157,36 @@ func resourceRepositoryWebhookUpdate(d *schema.ResourceData, meta interface{}) (
 
 	_, err = client.EditRepoHook(user, repo, id, hookOption)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	hook, _, err := client.GetRepoHook(user, repo, id)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	err = setRepositoryWebhookData(hook, d)
 
-	return
+	return diag.FromErr(err)
 }
 
-func resourceRepositoryWebhookDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceRepositoryWebhookDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	user := d.Get(repoWebhookUsername).(string)
 	repo := d.Get(repoWebhookName).(string)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	_, err = client.DeleteRepoHook(user, repo, id)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
-	return
+	return diag.FromErr(err)
 }
 
 func extractEvents(d *schema.ResourceData) []string {
@@ -226,41 +231,71 @@ func extractEvents(d *schema.ResourceData) []string {
 
 func setRepositoryWebhookData(hook *gitea.Hook, d *schema.ResourceData) (err error) {
 	d.SetId(strconv.FormatInt(hook.ID, 10))
-
-	d.Set(repoWebhookUsername, d.Get(repoWebhookUsername).(string))
-	d.Set(repoWebhookName, d.Get(repoWebhookName).(string))
-	d.Set(repoWebhookType, hook.Type)
-	d.Set(repoWebhookUrl, hookConfigValue(hook, "url"))
-	d.Set(repoWebhookContentType, hookConfigValue(hook, "content_type"))
+	if err := d.Set(repoWebhookUsername, d.Get(repoWebhookUsername).(string)); err != nil {
+		return err
+	}
+	if err := d.Set(repoWebhookName, d.Get(repoWebhookName).(string)); err != nil {
+		return err
+	}
+	if err := d.Set(repoWebhookType, hook.Type); err != nil {
+		return err
+	}
+	if err := d.Set(repoWebhookUrl, hookConfigValue(hook, "url")); err != nil {
+		return err
+	}
+	if err := d.Set(repoWebhookContentType, hookConfigValue(hook, "content_type")); err != nil {
+		return err
+	}
 
 	secret := hookConfigValue(hook, "secret")
 	if secret == "" {
 		secret = d.Get(repoWebhookSecret).(string)
 	}
 	if secret != "" {
-		d.Set(repoWebhookSecret, secret)
+		if err := d.Set(repoWebhookSecret, secret); err != nil {
+			return err
+		}
 	}
-
-	d.Set(repoWebhookEvents, hook.Events)
-	d.Set(repoWebhookBranchFilter, hook.BranchFilter)
-	d.Set(repoWebhookActive, hook.Active)
-	d.Set(repoWebhookCreatedAt, hook.Created.Format("2006-01-02T15:04:05Z07:00"))
-	d.Set(repoWebhookAuthorizationHeader, hook.AuthorizationHeader)
+	if err := d.Set(repoWebhookEvents, hook.Events); err != nil {
+		return err
+	}
+	if err := d.Set(repoWebhookBranchFilter, hook.BranchFilter); err != nil {
+		return err
+	}
+	if err := d.Set(repoWebhookActive, hook.Active); err != nil {
+		return err
+	}
+	if err := d.Set(repoWebhookCreatedAt, hook.Created.Format("2006-01-02T15:04:05Z07:00")); err != nil {
+		return err
+	}
+	if err := d.Set(repoWebhookAuthorizationHeader, hook.AuthorizationHeader); err != nil {
+		return err
+	}
 
 	if v := hookConfigValue(hook, "http_method"); v != "" {
-		d.Set(repoWebhookHttpMethod, v)
+		if err := d.Set(repoWebhookHttpMethod, v); err != nil {
+			return err
+		}
 	}
 	if v := hookConfigValue(hook, "channel"); v != "" {
-		d.Set(repoWebhookChannel, v)
+		if err := d.Set(repoWebhookChannel, v); err != nil {
+			return err
+		}
 	}
 	if v := hookConfigValue(hook, "username"); v != "" {
-		d.Set(repoWebhookSlackUsername, v)
+		if err := d.Set(repoWebhookSlackUsername, v); err != nil {
+			return err
+		}
 	}
 	if v := hookConfigValue(hook, "icon_url"); v != "" {
-		d.Set(repoWebhookIconUrl, v)
+		if err := d.Set(repoWebhookIconUrl, v); err != nil {
+			return err
+		}
 	}
 	if v := hookConfigValue(hook, "color"); v != "" {
-		d.Set(repoWebhookColor, v)
+		if err := d.Set(repoWebhookColor, v); err != nil {
+			return err
+		}
 	}
 
 	if isConfigConfiguredInHCL(d) {
@@ -287,10 +322,13 @@ func setRepositoryWebhookData(hook *gitea.Hook, d *schema.ResourceData) (err err
 				}
 			}
 		}
-
-		d.Set(repoWebhookConfig, newConfigMap)
+		if err := d.Set(repoWebhookConfig, newConfigMap); err != nil {
+			return err
+		}
 	} else {
-		d.Set(repoWebhookConfig, nil)
+		if err := d.Set(repoWebhookConfig, nil); err != nil {
+			return err
+		}
 	}
 
 	return
@@ -348,18 +386,22 @@ func stringSliceToInterfaceSlice(values []string) []interface{} {
 
 func resourceGiteaRepositoryWebhook() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceRepositoryWebhookRead,
-		Create: resourceRepositoryWebhookCreate,
-		Update: resourceRepositoryWebhookUpdate,
-		Delete: resourceRepositoryWebhookDelete,
+		ReadContext:   resourceRepositoryWebhookRead,
+		CreateContext: resourceRepositoryWebhookCreate,
+		UpdateContext: resourceRepositoryWebhookUpdate,
+		DeleteContext: resourceRepositoryWebhookDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
 				if len(parts) != 3 {
 					return nil, fmt.Errorf("unexpected ID format (%q), expected <username>/<repo>/<webhook_id>", d.Id())
 				}
-				d.Set("username", parts[0])
-				d.Set("name", parts[1])
+				if err := d.Set("username", parts[0]); err != nil {
+					return nil, err
+				}
+				if err := d.Set("name", parts[1]); err != nil {
+					return nil, err
+				}
 				d.SetId(parts[2])
 				return []*schema.ResourceData{d}, nil
 			},
@@ -465,7 +507,6 @@ func resourceGiteaRepositoryWebhook() *schema.Resource {
 		Description: "This resource allows you to create and manage webhooks for repositories.",
 	}
 }
-
 
 func webhookConfigDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
 	key := strings.TrimPrefix(k, "config.")

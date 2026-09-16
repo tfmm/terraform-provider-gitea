@@ -1,12 +1,14 @@
 package gitea
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
@@ -78,12 +80,16 @@ func getAllOrgRepos(c *gitea.Client, orgName string) (repos []string, err error)
 	}
 }
 
-func resourceOrgRead(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceOrgRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	var org *gitea.Organization
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	org, err = searchOrgByClientId(client, id)
 	if err != nil {
@@ -91,21 +97,22 @@ func resourceOrgRead(d *schema.ResourceData, meta interface{}) (err error) {
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	repos, err := getAllOrgRepos(client, org.UserName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	err = setOrgResourceData(org, d, &repos)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	return
+	return diag.FromErr(err)
 }
 
-func resourceOrgCreate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceOrgCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	opts := gitea.CreateOrgOption{
@@ -120,18 +127,19 @@ func resourceOrgCreate(d *schema.ResourceData, meta interface{}) (err error) {
 
 	org, _, err := client.CreateOrg(opts)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	repos, _ := getAllOrgRepos(client, org.UserName)
 	err = setOrgResourceData(org, d, &repos)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	return
+	return diag.FromErr(err)
 }
 
-func resourceOrgUpdate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceOrgUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	var org *gitea.Organization
@@ -140,9 +148,9 @@ func resourceOrgUpdate(d *schema.ResourceData, meta interface{}) (err error) {
 	org, resp, err = client.GetOrg(d.Get(orgName).(string))
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
-			return resourceOrgCreate(d, meta)
+			return resourceOrgCreate(ctx, d, meta)
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
@@ -160,7 +168,7 @@ func resourceOrgUpdate(d *schema.ResourceData, meta interface{}) (err error) {
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	org, resp, err = client.GetOrg(d.Get(orgName).(string))
@@ -169,21 +177,22 @@ func resourceOrgUpdate(d *schema.ResourceData, meta interface{}) (err error) {
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
 
 	repos, err := getAllOrgRepos(client, org.UserName)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 	err = setOrgResourceData(org, d, &repos)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
-	return
+	return diag.FromErr(err)
 }
 
-func resourceOrgDelete(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceOrgDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	var err error
 	client := meta.(*gitea.Client)
 
 	var resp *gitea.Response
@@ -191,35 +200,51 @@ func resourceOrgDelete(d *schema.ResourceData, meta interface{}) (err error) {
 	resp, err = client.DeleteOrg(d.Get(orgName).(string))
 	if err != nil {
 		if resp != nil && resp.StatusCode == 404 {
-			return
+			return diag.FromErr(err)
 		} else {
-			return err
+			return diag.FromErr(err)
 		}
 	}
 
-	return
+	return diag.FromErr(err)
 }
 
 func setOrgResourceData(org *gitea.Organization, d *schema.ResourceData, repos *[]string) (err error) {
 	d.SetId(fmt.Sprintf("%d", org.ID))
-	d.Set("name", org.UserName)
-	d.Set("full_name", org.FullName)
-	d.Set("avatar_url", org.AvatarURL)
-	d.Set("description", org.Description)
-	d.Set("website", org.Website)
-	d.Set("location", org.Location)
-	d.Set("visibility", org.Visibility)
-	d.Set("repos", repos)
+	if err := d.Set("name", org.UserName); err != nil {
+		return err
+	}
+	if err := d.Set("full_name", org.FullName); err != nil {
+		return err
+	}
+	if err := d.Set("avatar_url", org.AvatarURL); err != nil {
+		return err
+	}
+	if err := d.Set("description", org.Description); err != nil {
+		return err
+	}
+	if err := d.Set("website", org.Website); err != nil {
+		return err
+	}
+	if err := d.Set("location", org.Location); err != nil {
+		return err
+	}
+	if err := d.Set("visibility", org.Visibility); err != nil {
+		return err
+	}
+	if err := d.Set("repos", repos); err != nil {
+		return err
+	}
 
 	return
 }
 
 func resourceGiteaOrg() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceOrgRead,
-		Create: resourceOrgCreate,
-		Update: resourceOrgUpdate,
-		Delete: resourceOrgDelete,
+		ReadContext:   resourceOrgRead,
+		CreateContext: resourceOrgCreate,
+		UpdateContext: resourceOrgUpdate,
+		DeleteContext: resourceOrgDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
 		},

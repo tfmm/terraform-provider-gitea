@@ -225,10 +225,10 @@ func TestRepositoryActionsWorkflowStateImporterParsesCompositeID(t *testing.T) {
 
 func TestRepositoryActionsWorkflowStateUsesDedicatedDeleteHandler(t *testing.T) {
 	resource := resourceGiteaRepositoryActionsWorkflowState()
-	if resource.Delete == nil {
+	if resource.DeleteContext == nil {
 		t.Fatal("expected delete function")
 	}
-	if reflect.ValueOf(resource.Delete).Pointer() != reflect.ValueOf(resourceGiteaRepositoryActionsWorkflowStateDelete).Pointer() {
+	if reflect.ValueOf(resource.DeleteContext).Pointer() != reflect.ValueOf(resourceGiteaRepositoryActionsWorkflowStateDelete).Pointer() {
 		t.Fatal("expected workflow state resource to use dedicated delete handler")
 	}
 }

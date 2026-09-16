@@ -75,9 +75,8 @@ func TestResourcePushMirrorReadSuccess(t *testing.T) {
 	d := schema.TestResourceDataRaw(t, resourceGiteaPushMirror().Schema, map[string]interface{}{})
 	d.SetId("owner:repo:remote1")
 
-	err = resourceGiteaPushMirrorRead(d, client)
-	if err != nil {
-		t.Fatalf("unexpected read error: %v", err)
+	if diags := resourceGiteaPushMirrorRead(context.Background(), d, client); diags.HasError() {
+		t.Fatalf("unexpected read error: %v", diags)
 	}
 
 	if d.Id() != "owner:repo:remote1" {
@@ -108,9 +107,8 @@ func TestResourcePushMirrorReadNotFoundClearsState(t *testing.T) {
 	d := schema.TestResourceDataRaw(t, resourceGiteaPushMirror().Schema, map[string]interface{}{})
 	d.SetId("owner:repo:nonexistent")
 
-	err = resourceGiteaPushMirrorRead(d, client)
-	if err != nil {
-		t.Fatalf("unexpected read error: %v", err)
+	if diags := resourceGiteaPushMirrorRead(context.Background(), d, client); diags.HasError() {
+		t.Fatalf("unexpected read error: %v", diags)
 	}
 	if d.Id() != "" {
 		t.Errorf("expected empty ID after 404, got '%s'", d.Id())
@@ -164,9 +162,8 @@ func TestResourcePushMirrorCreate(t *testing.T) {
 		"sync_on_commit": true,
 	})
 
-	err = resourceGiteaPushMirrorCreate(d, client)
-	if err != nil {
-		t.Fatalf("unexpected create error: %v", err)
+	if diags := resourceGiteaPushMirrorCreate(context.Background(), d, client); diags.HasError() {
+		t.Fatalf("unexpected create error: %v", diags)
 	}
 
 	if d.Id() != "owner:repo:gitea-push-mirror-1" {
@@ -194,9 +191,8 @@ func TestResourcePushMirrorDelete(t *testing.T) {
 	d := schema.TestResourceDataRaw(t, resourceGiteaPushMirror().Schema, map[string]interface{}{})
 	d.SetId("owner:repo:remote1")
 
-	err = resourceGiteaPushMirrorDelete(d, client)
-	if err != nil {
-		t.Fatalf("unexpected delete error: %v", err)
+	if diags := resourceGiteaPushMirrorDelete(context.Background(), d, client); diags.HasError() {
+		t.Fatalf("unexpected delete error: %v", diags)
 	}
 	if !deleted {
 		t.Error("expected delete endpoint to be called")

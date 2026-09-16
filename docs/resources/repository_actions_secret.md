@@ -5,7 +5,9 @@ subcategory: ""
 description: |-
   gitea_repository_actions_secret manages a repository actions secret.
   Import expects the resource ID in the form owner:repository:secret_name.
-  Because Gitea does not return secret values, secret_value must still be configured when importing.
+  Because Gitea does not return secret values, secret_value or secret_value_wo must still be configured when importing.
+  WARNING:
+  secret_value will be stored in the terraform state! Use secret_value_wo instead to avoid that.
 ---
 
 # gitea_repository_actions_secret (Resource)
@@ -13,7 +15,10 @@ description: |-
 `gitea_repository_actions_secret` manages a repository actions secret.
 
 Import expects the resource ID in the form `owner:repository:secret_name`.
-Because Gitea does not return secret values, `secret_value` must still be configured when importing.
+Because Gitea does not return secret values, `secret_value` or `secret_value_wo` must still be configured when importing.
+
+WARNING:
+`secret_value` will be stored in the terraform state! Use `secret_value_wo` instead to avoid that.
 
 ## Example Usage
 
@@ -34,7 +39,14 @@ resource "gitea_repository_actions_secret" "example" {
 - `repository` (String) Name of the repository.
 - `repository_owner` (String) Owner of the repository.
 - `secret_name` (String) Name of the secret.
+
+### Optional
+
+> **NOTE**: [Write-only arguments](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments) are supported in Terraform 1.11 and later.
+
 - `secret_value` (String, Sensitive) Value of the secret.
+- `secret_value_wo` (String, Sensitive, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Write-only alternative to `secret_value`, never stored in the terraform state. Bump `secret_value_wo_version` whenever this value changes so it gets re-applied.
+- `secret_value_wo_version` (Number) Arbitrary version number to bump whenever `secret_value_wo` changes. Ignored when using `secret_value`.
 
 ### Read-Only
 

@@ -5,7 +5,9 @@ subcategory: ""
 description: |-
   gitea_org_actions_secret manages an organisation-scoped Actions secret.
   Import expects the resource ID in the form org:secret_name.
-  Because Gitea does not return secret values, secret_value must still be configured when importing.
+  Because Gitea does not return secret values, secret_value or secret_value_wo must still be configured when importing.
+  WARNING:
+  secret_value will be stored in the terraform state! Use secret_value_wo instead to avoid that.
 ---
 
 # gitea_org_actions_secret (Resource)
@@ -13,7 +15,10 @@ description: |-
 `gitea_org_actions_secret` manages an organisation-scoped Actions secret.
 
 Import expects the resource ID in the form `org:secret_name`.
-Because Gitea does not return secret values, `secret_value` must still be configured when importing.
+Because Gitea does not return secret values, `secret_value` or `secret_value_wo` must still be configured when importing.
+
+WARNING:
+`secret_value` will be stored in the terraform state! Use `secret_value_wo` instead to avoid that.
 
 ## Example Usage
 
@@ -32,11 +37,15 @@ resource "gitea_org_actions_secret" "example" {
 
 - `org` (String) The organisation owning the Actions secret.
 - `secret_name` (String) The Actions secret name.
-- `secret_value` (String, Sensitive) The Actions secret value.
 
 ### Optional
 
+> **NOTE**: [Write-only arguments](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments) are supported in Terraform 1.11 and later.
+
 - `description` (String) The Actions secret description.
+- `secret_value` (String, Sensitive) The Actions secret value.
+- `secret_value_wo` (String, Sensitive, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Write-only alternative to `secret_value`, never stored in the terraform state. Bump `secret_value_wo_version` whenever this value changes so it gets re-applied.
+- `secret_value_wo_version` (Number) Arbitrary version number to bump whenever `secret_value_wo` changes. Ignored when using `secret_value`.
 
 ### Read-Only
 

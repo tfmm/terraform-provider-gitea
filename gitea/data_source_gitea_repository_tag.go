@@ -1,15 +1,17 @@
 package gitea
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceGiteaRepositoryTag() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaRepositoryTagRead,
+		ReadContext: dataSourceGiteaRepositoryTagRead,
 		Schema: map[string]*schema.Schema{
 			"user": {
 				Type:        schema.TypeString,
@@ -41,7 +43,7 @@ func dataSourceGiteaRepositoryTag() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaRepositoryTagRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaRepositoryTagRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
@@ -49,19 +51,23 @@ func dataSourceGiteaRepositoryTagRead(d *schema.ResourceData, meta interface{}) 
 
 	tag, _, err := client.GetTag(user, repo, name)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s/%s", user, repo, name))
-	d.Set("commit_sha", tag.Commit.SHA)
-	d.Set("message", tag.Message)
+	if err := d.Set("commit_sha", tag.Commit.SHA); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("message", tag.Message); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
 
 func dataSourceGiteaRepositoryTags() *schema.Resource {
 	return &schema.Resource{
-		Read: dataSourceGiteaRepositoryTagsRead,
+		ReadContext: dataSourceGiteaRepositoryTagsRead,
 		Schema: map[string]*schema.Schema{
 			"user": {
 				Type:        schema.TypeString,
@@ -98,14 +104,14 @@ func dataSourceGiteaRepositoryTags() *schema.Resource {
 	}
 }
 
-func dataSourceGiteaRepositoryTagsRead(d *schema.ResourceData, meta interface{}) error {
+func dataSourceGiteaRepositoryTagsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
 
 	tags, _, err := client.ListRepoTags(user, repo, gitea.ListRepoTagsOptions{})
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	result := make([]map[string]interface{}, 0, len(tags))
@@ -122,7 +128,9 @@ func dataSourceGiteaRepositoryTagsRead(d *schema.ResourceData, meta interface{})
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s/tags", user, repo))
-	d.Set("tags", result)
+	if err := d.Set("tags", result); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }

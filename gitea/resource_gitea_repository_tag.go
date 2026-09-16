@@ -6,10 +6,11 @@ import (
 	"strings"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-func resourceRepositoryTagRead(d *schema.ResourceData, meta interface{}) error {
+func resourceRepositoryTagRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
@@ -21,17 +22,22 @@ func resourceRepositoryTagRead(d *schema.ResourceData, meta interface{}) error {
 			d.SetId("")
 			return nil
 		}
-		return err
+		return diag.FromErr(err)
 	}
-
-	d.Set("name", tag.Name)
-	d.Set("commit_sha", tag.Commit.SHA)
-	d.Set("message", tag.Message)
+	if err := d.Set("name", tag.Name); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("commit_sha", tag.Commit.SHA); err != nil {
+		return diag.FromErr(err)
+	}
+	if err := d.Set("message", tag.Message); err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
 
-func resourceRepositoryTagCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceRepositoryTagCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
@@ -45,37 +51,43 @@ func resourceRepositoryTagCreate(d *schema.ResourceData, meta interface{}) error
 
 	_, _, err := client.CreateTag(user, repo, opts)
 	if err != nil {
-		return err
+		return diag.FromErr(err)
 	}
 
 	d.SetId(fmt.Sprintf("%s/%s/%s", user, repo, name))
-	return resourceRepositoryTagRead(d, meta)
+	return resourceRepositoryTagRead(ctx, d, meta)
 }
 
-func resourceRepositoryTagDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceRepositoryTagDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	client := meta.(*gitea.Client)
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
 	name := d.Get("name").(string)
 
 	_, err := client.DeleteTag(user, repo, name)
-	return err
+	return diag.FromErr(err)
 }
 
 func resourceGiteaRepositoryTag() *schema.Resource {
 	return &schema.Resource{
-		Read:   resourceRepositoryTagRead,
-		Create: resourceRepositoryTagCreate,
-		Delete: resourceRepositoryTagDelete,
+		ReadContext:   resourceRepositoryTagRead,
+		CreateContext: resourceRepositoryTagCreate,
+		DeleteContext: resourceRepositoryTagDelete,
 		Importer: &schema.ResourceImporter{
 			StateContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 				parts := strings.Split(d.Id(), "/")
 				if len(parts) != 3 {
 					return nil, fmt.Errorf("unexpected ID format (%q), expected <user>/<repo>/<tag_name>", d.Id())
 				}
-				d.Set("user", parts[0])
-				d.Set("repo", parts[1])
-				d.Set("name", parts[2])
+				if err := d.Set("user", parts[0]); err != nil {
+					return nil, err
+				}
+				if err := d.Set("repo", parts[1]); err != nil {
+					return nil, err
+				}
+				if err := d.Set("name", parts[2]); err != nil {
+					return nil, err
+				}
 				d.SetId(d.Id())
 				return []*schema.ResourceData{d}, nil
 			},
