@@ -37,6 +37,9 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, meta interfac
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	var resp *gitea.Response
 	var user *gitea.User
@@ -91,6 +94,9 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 	client := meta.(*gitea.Client)
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 	var resp *gitea.Response
 	var user *gitea.User
 
