@@ -12,7 +12,7 @@ import (
 )
 
 func resourceLabelRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -53,7 +53,7 @@ func resourceLabelRead(ctx context.Context, d *schema.ResourceData, meta interfa
 }
 
 func resourceLabelCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	color := strings.TrimPrefix(d.Get("color").(string), "#")
 	name := d.Get("name").(string)
@@ -92,7 +92,7 @@ func resourceLabelCreate(ctx context.Context, d *schema.ResourceData, meta inter
 }
 
 func resourceLabelUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -131,7 +131,7 @@ func resourceLabelUpdate(ctx context.Context, d *schema.ResourceData, meta inter
 }
 
 func resourceLabelDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)

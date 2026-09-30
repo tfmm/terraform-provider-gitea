@@ -24,7 +24,7 @@ func parseTeamMembersID(id string) (int, error) {
 }
 
 func getTeamMembers(team_id int, meta interface{}) (membersNames []string, err error) {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	var memberNames []string
 	var members []*gitea.User
@@ -88,7 +88,7 @@ func teamMembersDiff(current, desired []string) (toAdd, toRemove []string) {
 
 func resourceTeamMembersCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	team_id := d.Get(membersTeamID).(int)
 
 	desiredMembers := make([]string, 0)
@@ -146,7 +146,7 @@ func resourceTeamMembersRead(ctx context.Context, d *schema.ResourceData, meta i
 
 func resourceTeamMembersDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	team_id, err := parseTeamMembersID(d.Id())
 	if err != nil {
 		return diag.FromErr(err)

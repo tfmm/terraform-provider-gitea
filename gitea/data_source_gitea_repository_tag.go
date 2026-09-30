@@ -44,7 +44,7 @@ func dataSourceGiteaRepositoryTag() *schema.Resource {
 }
 
 func dataSourceGiteaRepositoryTagRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
 	name := d.Get("name").(string)
@@ -105,7 +105,7 @@ func dataSourceGiteaRepositoryTags() *schema.Resource {
 }
 
 func dataSourceGiteaRepositoryTagsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
 

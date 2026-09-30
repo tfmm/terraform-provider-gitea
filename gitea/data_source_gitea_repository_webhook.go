@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/sdk/gitea"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -119,7 +118,7 @@ func dataSourceGiteaRepositoryWebhook() *schema.Resource {
 }
 
 func dataSourceGiteaRepositoryWebhookRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	owner := strings.ToLower(d.Get("username").(string))
 	repo := strings.ToLower(d.Get("name").(string))

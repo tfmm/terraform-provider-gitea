@@ -108,10 +108,43 @@ variable "block_merge_on_outdated_branch" {
   default = false
 }
 
-# // not implemented in go-gitea-sdk
-//
-# //
-# // "ignore_stale_approvals": {
-# // Description: `Do not count approvals that were made on older commits (stale reviews) towards how many approvals the PR has. Irrelevant if stale reviews are already dismissed.`,
-# // },
+variable "block_on_codeowner_reviews" {
+  type    = bool
+  default = false
+}
+
+variable "enable_force_push" {
+  type    = bool
+  default = false
+}
+
+variable "ignore_stale_approvals" {
+  type    = bool
+  default = false
+}
+
+variable "priority" {
+  type    = number
+  default = 0
+}
+
+variable "force_push_allowlist_users" {
+  type    = list(string)
+  default = []
+}
+
+variable "force_push_allowlist_teams" {
+  type    = list(string)
+  default = []
+}
+
+variable "bypass_allowlist_users" {
+  type    = list(string)
+  default = []
+}
+
+variable "bypass_allowlist_teams" {
+  type    = list(string)
+  default = []
+}
 

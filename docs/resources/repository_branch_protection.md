@@ -45,13 +45,27 @@ resource "gitea_repository_branch_protection" "example" {
 - `block_merge_on_rejected_reviews` (Boolean) Merging will not be possible when changes are
 								requested by official reviewers, even if there are enough
 								approvals.
+- `block_on_codeowner_reviews` (Boolean) Merging will not be possible until all code owners (per CODEOWNERS) have approved. Requires Gitea >= 28.0.0.
+- `bypass_allowlist_teams` (List of String) Allowlisted teams who may bypass this branch protection rule entirely.
+- `bypass_allowlist_users` (List of String) Allowlisted users who may bypass this branch protection rule entirely.
 - `dismiss_stale_approvals` (Boolean) When new commits that change the content of the pull request
 								are pushed to the branch, old approvals will be dismissed.
+- `enable_force_push` (Boolean) Allow force pushes to this branch by anyone with push access. Mutually
+								exclusive with the force push allowlist: if force_push_allowlist_users
+								or force_push_allowlist_teams is set, Gitea restricts force pushing to
+								that allowlist and this field reads back as false.
 - `enable_push` (Boolean) Anyone with write access will be allowed to push to this branch
 								(but not force push), add a whitelist users or teams to limit
 								access.
+- `force_push_allowlist_deploy_keys` (Boolean) Allow deploy keys with write access to force push.
+- `force_push_allowlist_teams` (List of String) Allowlisted teams who may force push to this branch.
+- `force_push_allowlist_users` (List of String) Allowlisted users who may force push to this branch.
+- `ignore_stale_approvals` (Boolean) Do not count approvals that were made on older commits (stale
+								reviews) towards how many approvals the PR has. Irrelevant if
+								stale reviews are already dismissed.
 - `merge_whitelist_teams` (List of String) Allow only allowlisted teams to merge pull requests into this branch.
 - `merge_whitelist_users` (List of String) Allow only allowlisted users to merge pull requests into this branch.
+- `priority` (Number) Priority of this branch protection rule when multiple rules match the same branch. Lower values are evaluated first.
 - `protected_file_patterns` (String) Protected file patterns (separated using semicolon ';')
 - `push_whitelist_deploy_keys` (Boolean) Allow deploy keys with write access to push. Requires enable_push to be set to true.
 - `push_whitelist_teams` (List of String) Allowlisted teams for pushing. Requires enable_push to be set to true.
@@ -67,6 +81,8 @@ resource "gitea_repository_branch_protection" "example" {
 
 - `created_at` (String) Webhook creation timestamp
 - `enable_approval_whitelist` (Boolean) True if a approval whitelist is used.
+- `enable_bypass_allowlist` (Boolean) True if a bypass allowlist is used.
+- `enable_force_push_allowlist` (Boolean) True if a force push allowlist is used.
 - `enable_merge_whitelist` (Boolean) True if a merge whitelist is used.
 - `enable_push_whitelist` (Boolean) True if a push whitelist is used.
 - `enable_status_check` (Boolean) Require status checks to pass before merging. When enabled,

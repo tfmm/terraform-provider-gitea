@@ -26,7 +26,7 @@ const (
 
 func resourceTeamRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -67,7 +67,7 @@ func resourceTeamRead(ctx context.Context, d *schema.ResourceData, meta interfac
 
 func resourceTeamCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	var team *gitea.Team
 	opts := buildCreateTeamOptions(d)
@@ -102,7 +102,7 @@ func resourceTeamCreate(ctx context.Context, d *schema.ResourceData, meta interf
 
 func resourceTeamUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -323,7 +323,7 @@ func buildUnitsFromSchema(d *schema.ResourceData) []gitea.RepoUnitType {
 
 func resourceTeamDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -669,7 +669,7 @@ func unitsDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
 }
 
 func setTeamRepositories(team *gitea.Team, d *schema.ResourceData, meta interface{}, update bool) (err error) {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	org := d.Get(TeamOrg).(string)
 

@@ -53,7 +53,7 @@ func dataSourceGiteaTeamMembers() *schema.Resource {
 }
 
 func dataSourceGiteaTeamMembersRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	teamID := int64(d.Get("team_id").(int))
 

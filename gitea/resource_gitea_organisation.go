@@ -82,7 +82,7 @@ func getAllOrgRepos(c *gitea.Client, orgName string) (repos []string, err error)
 
 func resourceOrgRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	var org *gitea.Organization
 
@@ -113,7 +113,7 @@ func resourceOrgRead(ctx context.Context, d *schema.ResourceData, meta interface
 
 func resourceOrgCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	opts := gitea.CreateOrgOption{
 		Name:                      d.Get(orgName).(string),
@@ -140,7 +140,7 @@ func resourceOrgCreate(ctx context.Context, d *schema.ResourceData, meta interfa
 
 func resourceOrgUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	var org *gitea.Organization
 	var resp *gitea.Response
@@ -193,7 +193,7 @@ func resourceOrgUpdate(ctx context.Context, d *schema.ResourceData, meta interfa
 
 func resourceOrgDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	var resp *gitea.Response
 

@@ -19,7 +19,7 @@ const (
 
 func resourceRepositoryCollaboratorCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	owner := d.Get(collabOwner).(string)
 	repo := d.Get(collabRepo).(string)
@@ -40,7 +40,7 @@ func resourceRepositoryCollaboratorCreate(ctx context.Context, d *schema.Resourc
 
 func resourceRepositoryCollaboratorRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	owner, repo, username, parseErr := parseCollaboratorID(d.Id())
 	if parseErr != nil {
@@ -72,7 +72,7 @@ func resourceRepositoryCollaboratorRead(ctx context.Context, d *schema.ResourceD
 
 func resourceRepositoryCollaboratorUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	owner := d.Get(collabOwner).(string)
 	repo := d.Get(collabRepo).(string)
@@ -93,7 +93,7 @@ func resourceRepositoryCollaboratorUpdate(ctx context.Context, d *schema.Resourc
 
 func resourceRepositoryCollaboratorDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	owner := d.Get(collabOwner).(string)
 	repo := d.Get(collabRepo).(string)

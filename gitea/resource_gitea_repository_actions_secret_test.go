@@ -24,11 +24,12 @@ func TestResourceRepositoryActionsSecretReadReturnsServerErrorWithoutClearingSta
 	if err != nil {
 		t.Fatalf("unexpected client error: %v", err)
 	}
+	gc := &GiteaClient{Client: client}
 
 	d := schema.TestResourceDataRaw(t, resourceGiteaRepositoryActionsSecret().Schema, map[string]interface{}{})
 	d.SetId(buildThreePartID("owner", "repo", "secret"))
 
-	if diags := resourceGiteaRepositoryActionsSecretRead(context.Background(), d, client); !diags.HasError() {
+	if diags := resourceGiteaRepositoryActionsSecretRead(context.Background(), d, gc); !diags.HasError() {
 		t.Fatal("expected read to return an error")
 	}
 	if d.Id() == "" {

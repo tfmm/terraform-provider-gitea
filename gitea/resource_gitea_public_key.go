@@ -41,7 +41,7 @@ func sshKeyDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
 
 func resourcePublicKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -69,7 +69,7 @@ func resourcePublicKeyRead(ctx context.Context, d *schema.ResourceData, meta int
 
 func resourcePublicKeyCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	var pubKey *gitea.PublicKey
 
@@ -96,7 +96,7 @@ func resourcePublicKeyUpdate(ctx context.Context, d *schema.ResourceData, meta i
 
 func resourcePublicKeyDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {

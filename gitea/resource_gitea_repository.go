@@ -117,7 +117,7 @@ func searchUserByName(c *gitea.Client, name string) (res *gitea.User, err error)
 
 func resourceRepoRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	var resp *gitea.Response
@@ -144,7 +144,7 @@ func resourceRepoRead(ctx context.Context, d *schema.ResourceData, meta interfac
 
 func resourceRepoCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	var repo *gitea.Repository
 	var resp *gitea.Response
@@ -283,7 +283,7 @@ func resourceRepoCreate(ctx context.Context, d *schema.ResourceData, meta interf
 
 func resourceRepoUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	var repo *gitea.Repository
 
@@ -359,7 +359,7 @@ func resourceRepoUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 
 func resourceRepoDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	archiveOnDestroy := d.Get(repoArchiveOnDestroy).(bool)
 	archived := d.Get(repoArchived).(bool)

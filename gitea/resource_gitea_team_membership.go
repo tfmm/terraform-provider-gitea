@@ -37,7 +37,7 @@ func parseTeamMembershipID(id string) (teamID int, username string, err error) {
 
 func resourceTeamMembershipCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	team_id := d.Get(membershipTeamID).(int)
 	username := d.Get(membershipUserName).(string)
@@ -58,7 +58,7 @@ func resourceTeamMembershipCreate(ctx context.Context, d *schema.ResourceData, m
 
 func resourceTeamMembershipRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	var resp *gitea.Response
 
@@ -91,7 +91,7 @@ func resourceTeamMembershipRead(ctx context.Context, d *schema.ResourceData, met
 
 func resourceTeamMembershipDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	team_id, username, err := parseTeamMembershipID(d.Id())
 	if err != nil {

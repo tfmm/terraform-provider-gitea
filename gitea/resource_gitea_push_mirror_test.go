@@ -71,11 +71,12 @@ func TestResourcePushMirrorReadSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected client error: %v", err)
 	}
+	gc := &GiteaClient{Client: client}
 
 	d := schema.TestResourceDataRaw(t, resourceGiteaPushMirror().Schema, map[string]interface{}{})
 	d.SetId("owner:repo:remote1")
 
-	if diags := resourceGiteaPushMirrorRead(context.Background(), d, client); diags.HasError() {
+	if diags := resourceGiteaPushMirrorRead(context.Background(), d, gc); diags.HasError() {
 		t.Fatalf("unexpected read error: %v", diags)
 	}
 
@@ -103,11 +104,12 @@ func TestResourcePushMirrorReadNotFoundClearsState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected client error: %v", err)
 	}
+	gc := &GiteaClient{Client: client}
 
 	d := schema.TestResourceDataRaw(t, resourceGiteaPushMirror().Schema, map[string]interface{}{})
 	d.SetId("owner:repo:nonexistent")
 
-	if diags := resourceGiteaPushMirrorRead(context.Background(), d, client); diags.HasError() {
+	if diags := resourceGiteaPushMirrorRead(context.Background(), d, gc); diags.HasError() {
 		t.Fatalf("unexpected read error: %v", diags)
 	}
 	if d.Id() != "" {
@@ -153,6 +155,7 @@ func TestResourcePushMirrorCreate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected client error: %v", err)
 	}
+	gc := &GiteaClient{Client: client}
 
 	d := schema.TestResourceDataRaw(t, resourceGiteaPushMirror().Schema, map[string]interface{}{
 		"owner":          "owner",
@@ -162,7 +165,7 @@ func TestResourcePushMirrorCreate(t *testing.T) {
 		"sync_on_commit": true,
 	})
 
-	if diags := resourceGiteaPushMirrorCreate(context.Background(), d, client); diags.HasError() {
+	if diags := resourceGiteaPushMirrorCreate(context.Background(), d, gc); diags.HasError() {
 		t.Fatalf("unexpected create error: %v", diags)
 	}
 
@@ -187,11 +190,12 @@ func TestResourcePushMirrorDelete(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected client error: %v", err)
 	}
+	gc := &GiteaClient{Client: client}
 
 	d := schema.TestResourceDataRaw(t, resourceGiteaPushMirror().Schema, map[string]interface{}{})
 	d.SetId("owner:repo:remote1")
 
-	if diags := resourceGiteaPushMirrorDelete(context.Background(), d, client); diags.HasError() {
+	if diags := resourceGiteaPushMirrorDelete(context.Background(), d, gc); diags.HasError() {
 		t.Fatalf("unexpected delete error: %v", diags)
 	}
 	if !deleted {

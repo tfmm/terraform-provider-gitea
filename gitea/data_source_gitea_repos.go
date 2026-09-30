@@ -52,7 +52,7 @@ func dataSourceGiteaRepos() *schema.Resource {
 }
 
 func dataSourceGiteaReposRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	username := d.Get("username").(string)
 

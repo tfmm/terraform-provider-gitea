@@ -34,7 +34,7 @@ const (
 
 func resourceUserRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -61,7 +61,7 @@ func resourceUserRead(ctx context.Context, d *schema.ResourceData, meta interfac
 
 func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	var user *gitea.User
 	visibility := gitea.VisibleType(d.Get(userVisibility).(string))
@@ -91,7 +91,7 @@ func resourceUserCreate(ctx context.Context, d *schema.ResourceData, meta interf
 
 func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -168,7 +168,7 @@ func resourceUserUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 
 func resourceUserDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	var resp *gitea.Response
 

@@ -17,7 +17,7 @@ const (
 )
 
 func resourceGPGKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -44,7 +44,7 @@ func resourceGPGKeyRead(ctx context.Context, d *schema.ResourceData, meta interf
 }
 
 func resourceGPGKeyCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	var pubKey *gitea.GPGKey
 	var err error
@@ -64,7 +64,7 @@ func resourceGPGKeyCreate(ctx context.Context, d *schema.ResourceData, meta inte
 }
 
 func resourceGPGKeyDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {

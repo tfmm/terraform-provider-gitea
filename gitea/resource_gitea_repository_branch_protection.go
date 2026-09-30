@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
-	"code.gitea.io/sdk/gitea"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -19,11 +19,23 @@ const (
 	repoBPProtectedFilePatterns   string = "protected_file_patterns"
 	repoBPUnprotectedFilePatterns string = "unprotected_file_patterns"
 
+	repoBPPriority string = "priority"
+
 	repoBPEnablePush              string = "enable_push"
 	repoBPEnablePushWhitelist     string = "enable_push_whitelist"
 	repoBPPushWhitelistUsers      string = "push_whitelist_users"
 	repoBPPushWhitelistTeams      string = "push_whitelist_teams"
 	repoBPPushWhitelistDeployKeys string = "push_whitelist_deploy_keys"
+
+	repoBPEnableForcePush              string = "enable_force_push"
+	repoBPEnableForcePushAllowlist     string = "enable_force_push_allowlist"
+	repoBPForcePushAllowlistUsers      string = "force_push_allowlist_users"
+	repoBPForcePushAllowlistTeams      string = "force_push_allowlist_teams"
+	repoBPForcePushAllowlistDeployKeys string = "force_push_allowlist_deploy_keys"
+
+	repoBPEnableBypassAllowlist string = "enable_bypass_allowlist"
+	repoBPBypassAllowlistUsers  string = "bypass_allowlist_users"
+	repoBPBypassAllowlistTeams  string = "bypass_allowlist_teams"
 
 	repoBPRequireSignedCommits string = "require_signed_commits"
 
@@ -32,8 +44,7 @@ const (
 	repoBPApprovalWhitelistUsers  string = "approval_whitelist_users"
 	repoBPApprovalWhitelistTeams  string = "approval_whitelist_teams"
 	repoBPDismissStaleApprovals   string = "dismiss_stale_approvals"
-	// not implemented in go-gitea-sdk
-	// repoBPIgnoreStaleApprovals   string = "ignore_stale_approvals"
+	repoBPIgnoreStaleApprovals    string = "ignore_stale_approvals"
 
 	repoBPEnableStatusCheck   string = "enable_status_check"
 	repoBPStatusCheckPatterns string = "status_check_patterns"
@@ -45,32 +56,109 @@ const (
 	repoBPBlockMergeOnRejectedReviews        string = "block_merge_on_rejected_reviews"
 	repoBPBlockMergeOnOfficialReviewRequests string = "block_merge_on_official_review_requests"
 	repoBPBlockMergeOnOutdatedBranch         string = "block_merge_on_outdated_branch"
+	repoBPBlockOnCodeownerReviews            string = "block_on_codeowner_reviews"
 	repoBPBlockAdminMergeOverride            string = "block_admin_merge_override"
 
 	repoBPUpdatedAt string = "updated_at"
 	repoBPCreatedAt string = "created_at"
 )
 
+// branchProtection mirrors the Gitea BranchProtection API object. It is kept
+// local (instead of using code.gitea.io/sdk/gitea's BranchProtection) because
+// the SDK has not yet caught up with fields introduced by Gitea, such as
+// block_on_codeowner_reviews (Gitea 28) and the bypass/force-push allowlists.
+type branchProtection struct {
+	BranchName                    string    `json:"branch_name"`
+	RuleName                      string    `json:"rule_name"`
+	Priority                      int64     `json:"priority"`
+	EnablePush                    bool      `json:"enable_push"`
+	EnablePushWhitelist           bool      `json:"enable_push_whitelist"`
+	PushWhitelistUsernames        []string  `json:"push_whitelist_usernames"`
+	PushWhitelistTeams            []string  `json:"push_whitelist_teams"`
+	PushWhitelistDeployKeys       bool      `json:"push_whitelist_deploy_keys"`
+	EnableForcePush               bool      `json:"enable_force_push"`
+	EnableForcePushAllowlist      bool      `json:"enable_force_push_allowlist"`
+	ForcePushAllowlistUsernames   []string  `json:"force_push_allowlist_usernames"`
+	ForcePushAllowlistTeams       []string  `json:"force_push_allowlist_teams"`
+	ForcePushAllowlistDeployKeys  bool      `json:"force_push_allowlist_deploy_keys"`
+	EnableBypassAllowlist         bool      `json:"enable_bypass_allowlist"`
+	BypassAllowlistUsernames      []string  `json:"bypass_allowlist_usernames"`
+	BypassAllowlistTeams          []string  `json:"bypass_allowlist_teams"`
+	EnableMergeWhitelist          bool      `json:"enable_merge_whitelist"`
+	MergeWhitelistUsernames       []string  `json:"merge_whitelist_usernames"`
+	MergeWhitelistTeams           []string  `json:"merge_whitelist_teams"`
+	EnableStatusCheck             bool      `json:"enable_status_check"`
+	StatusCheckContexts           []string  `json:"status_check_contexts"`
+	RequiredApprovals             int64     `json:"required_approvals"`
+	EnableApprovalsWhitelist      bool      `json:"enable_approvals_whitelist"`
+	ApprovalsWhitelistUsernames   []string  `json:"approvals_whitelist_username"`
+	ApprovalsWhitelistTeams       []string  `json:"approvals_whitelist_teams"`
+	BlockOnRejectedReviews        bool      `json:"block_on_rejected_reviews"`
+	BlockOnOfficialReviewRequests bool      `json:"block_on_official_review_requests"`
+	BlockOnOutdatedBranch         bool      `json:"block_on_outdated_branch"`
+	BlockOnCodeownerReviews       bool      `json:"block_on_codeowner_reviews"`
+	DismissStaleApprovals         bool      `json:"dismiss_stale_approvals"`
+	IgnoreStaleApprovals          bool      `json:"ignore_stale_approvals"`
+	RequireSignedCommits          bool      `json:"require_signed_commits"`
+	ProtectedFilePatterns         string    `json:"protected_file_patterns"`
+	UnprotectedFilePatterns       string    `json:"unprotected_file_patterns"`
+	BlockAdminMergeOverride       bool      `json:"block_admin_merge_override"`
+	Created                       time.Time `json:"created_at"`
+	Updated                       time.Time `json:"updated_at"`
+}
+
+func branchProtectionPath(owner, repo, name string) string {
+	if name == "" {
+		return fmt.Sprintf("/repos/%s/%s/branch_protections", owner, repo)
+	}
+	return fmt.Sprintf("/repos/%s/%s/branch_protections/%s", owner, repo, name)
+}
+
+func getBranchProtectionRaw(client *GiteaClient, owner, repo, name string) (*branchProtection, error) {
+	bp := new(branchProtection)
+	if err := client.rawJSON("GET", branchProtectionPath(owner, repo, name), nil, bp); err != nil {
+		return nil, err
+	}
+	return bp, nil
+}
+
+func createBranchProtectionRaw(client *GiteaClient, owner, repo string, opt *branchProtection) (*branchProtection, error) {
+	bp := new(branchProtection)
+	if err := client.rawJSON("POST", branchProtectionPath(owner, repo, ""), opt, bp); err != nil {
+		return nil, err
+	}
+	return bp, nil
+}
+
+func editBranchProtectionRaw(client *GiteaClient, owner, repo, name string, opt *branchProtection) (*branchProtection, error) {
+	bp := new(branchProtection)
+	if err := client.rawJSON("PATCH", branchProtectionPath(owner, repo, name), opt, bp); err != nil {
+		return nil, err
+	}
+	return bp, nil
+}
+
+func deleteBranchProtectionRaw(client *GiteaClient, owner, repo, name string) error {
+	return client.rawJSON("DELETE", branchProtectionPath(owner, repo, name), nil, nil)
+}
+
 func resourceRepositoryBranchProtectionRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient)
 
 	user := d.Get(repoBPUsername).(string)
 	repo := d.Get(repoBPName).(string)
-	rule_name := d.Get(repoBPRuleName).(string)
+	ruleName := d.Get(repoBPRuleName).(string)
 
-	bp, resp, err := client.GetBranchProtection(user, repo, rule_name)
+	bp, err := getBranchProtectionRaw(client, user, repo, ruleName)
 	if err != nil {
-		if resp != nil && resp.StatusCode == 404 {
+		if strings.Contains(err.Error(), "status 404") {
 			d.SetId("")
-			return diag.FromErr(err)
-		} else {
-			return diag.FromErr(err)
+			return nil
 		}
+		return diag.FromErr(err)
 	}
 
-	err = setRepositoryBranchProtectionData(bp, user, repo, d)
-	return diag.FromErr(err)
+	return diag.FromErr(setRepositoryBranchProtectionData(bp, user, repo, d))
 }
 
 func generateWhitelist(d *schema.ResourceData, listname string) (enabled bool, users []string, teams []string) {
@@ -93,7 +181,7 @@ func generateWhitelist(d *schema.ResourceData, listname string) (enabled bool, u
 	if c := len(users) + len(teams); c > 0 {
 		enabled = true
 	}
-	if listname == "push_whitelist" && d.Get(repoBPPushWhitelistDeployKeys).(bool) {
+	if (listname == "push_whitelist" || listname == "force_push_allowlist") && d.Get(listname+"_deploy_keys").(bool) {
 		enabled = true
 	}
 
@@ -101,14 +189,10 @@ func generateWhitelist(d *schema.ResourceData, listname string) (enabled bool, u
 	return enabled, users, teams
 }
 
-func resourceRepositoryBranchProtectionCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var err error
-	client := meta.(*gitea.Client)
-
-	user := d.Get(repoBPUsername).(string)
-	repo := d.Get(repoBPName).(string)
-
+func branchProtectionFromResourceData(d *schema.ResourceData, ruleName string) *branchProtection {
 	enablePushWhitelist, pushWhitelistUsernames, pushWhitelistTeams := generateWhitelist(d, "push_whitelist")
+	enableForcePushAllowlist, forcePushAllowlistUsernames, forcePushAllowlistTeams := generateWhitelist(d, "force_push_allowlist")
+	enableBypassAllowlist, bypassAllowlistUsernames, bypassAllowlistTeams := generateWhitelist(d, "bypass_allowlist")
 	enableMergeWhitelist, mergeWhitelistUsernames, mergeWhitelistTeams := generateWhitelist(d, "merge_whitelist")
 	enableApprovalsWhitelist, approvalsWhitelistUsernames, approvalsWhitelistTeams := generateWhitelist(d, "approval_whitelist")
 
@@ -116,23 +200,28 @@ func resourceRepositoryBranchProtectionCreate(ctx context.Context, d *schema.Res
 	for _, element := range d.Get(repoBPStatusCheckPatterns).([]interface{}) {
 		statusCheckContexts = append(statusCheckContexts, element.(string))
 	}
+	enableStatusCheck := len(statusCheckContexts) > 0
 
-	log.Println("create_ulist:", pushWhitelistUsernames)
+	enablePush := d.Get(repoBPEnablePush).(bool) || enablePushWhitelist
 
-	enableStatusCheck := false
-	if len(statusCheckContexts) > 0 {
-		enableStatusCheck = true
-	}
-
-	bpOption := gitea.CreateBranchProtectionOption{
-		// BranchName is deprecated in gitea, but still required in go-gitea-sdk, therefore using RuleName
-		BranchName:                    d.Get(repoBPRuleName).(string),
-		RuleName:                      d.Get(repoBPRuleName).(string),
-		EnablePush:                    d.Get(repoBPEnablePush).(bool),
+	return &branchProtection{
+		// BranchName is deprecated in gitea, but still required by the API, therefore using RuleName
+		BranchName:                    ruleName,
+		RuleName:                      ruleName,
+		Priority:                      int64(d.Get(repoBPPriority).(int)),
+		EnablePush:                    enablePush,
 		EnablePushWhitelist:           enablePushWhitelist,
 		PushWhitelistUsernames:        pushWhitelistUsernames,
 		PushWhitelistTeams:            pushWhitelistTeams,
 		PushWhitelistDeployKeys:       d.Get(repoBPPushWhitelistDeployKeys).(bool),
+		EnableForcePush:               d.Get(repoBPEnableForcePush).(bool),
+		EnableForcePushAllowlist:      enableForcePushAllowlist,
+		ForcePushAllowlistUsernames:   forcePushAllowlistUsernames,
+		ForcePushAllowlistTeams:       forcePushAllowlistTeams,
+		ForcePushAllowlistDeployKeys:  d.Get(repoBPForcePushAllowlistDeployKeys).(bool),
+		EnableBypassAllowlist:         enableBypassAllowlist,
+		BypassAllowlistUsernames:      bypassAllowlistUsernames,
+		BypassAllowlistTeams:          bypassAllowlistTeams,
 		EnableMergeWhitelist:          enableMergeWhitelist,
 		MergeWhitelistUsernames:       mergeWhitelistUsernames,
 		MergeWhitelistTeams:           mergeWhitelistTeams,
@@ -145,111 +234,69 @@ func resourceRepositoryBranchProtectionCreate(ctx context.Context, d *schema.Res
 		BlockOnRejectedReviews:        d.Get(repoBPBlockMergeOnRejectedReviews).(bool),
 		BlockOnOfficialReviewRequests: d.Get(repoBPBlockMergeOnOfficialReviewRequests).(bool),
 		BlockOnOutdatedBranch:         d.Get(repoBPBlockMergeOnOutdatedBranch).(bool),
+		BlockOnCodeownerReviews:       d.Get(repoBPBlockOnCodeownerReviews).(bool),
 		DismissStaleApprovals:         d.Get(repoBPDismissStaleApprovals).(bool),
-		// IgnoreStaleApprovals:          d.Get(repoBPIgnoreStaleApprovals).(bool),
-		RequireSignedCommits:    d.Get(repoBPRequireSignedCommits).(bool),
-		ProtectedFilePatterns:   d.Get(repoBPProtectedFilePatterns).(string),
-		UnprotectedFilePatterns: d.Get(repoBPUnprotectedFilePatterns).(string),
-		BlockAdminMergeOverride: d.Get(repoBPBlockAdminMergeOverride).(bool),
+		IgnoreStaleApprovals:          d.Get(repoBPIgnoreStaleApprovals).(bool),
+		RequireSignedCommits:          d.Get(repoBPRequireSignedCommits).(bool),
+		ProtectedFilePatterns:         d.Get(repoBPProtectedFilePatterns).(string),
+		UnprotectedFilePatterns:       d.Get(repoBPUnprotectedFilePatterns).(string),
+		BlockAdminMergeOverride:       d.Get(repoBPBlockAdminMergeOverride).(bool),
 	}
+}
 
-	bp, _, err := client.CreateBranchProtection(user, repo, bpOption)
+func resourceRepositoryBranchProtectionCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	client := meta.(*GiteaClient)
+
+	user := d.Get(repoBPUsername).(string)
+	repo := d.Get(repoBPName).(string)
+	ruleName := d.Get(repoBPRuleName).(string)
+
+	opt := branchProtectionFromResourceData(d, ruleName)
+
+	bp, err := createBranchProtectionRaw(client, user, repo, opt)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	err = setRepositoryBranchProtectionData(bp, user, repo, d)
-	return diag.FromErr(err)
+	// Gitea 28.0.0's create endpoint silently ignores enable_force_push and
+	// enable_force_push_allowlist (the edit endpoint honors both), so a
+	// second call normalizes state with what the server actually applies.
+	bp, err = editBranchProtectionRaw(client, user, repo, ruleName, opt)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+
+	return diag.FromErr(setRepositoryBranchProtectionData(bp, user, repo, d))
 }
 
 func resourceRepositoryBranchProtectionUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient)
 
 	user := d.Get(repoBPUsername).(string)
 	repo := d.Get(repoBPName).(string)
-	rule_name := d.Id()
+	ruleName := d.Id()
 
-	enablePushWhitelist, pushWhitelistUsernames, pushWhitelistTeams := generateWhitelist(d, "push_whitelist")
-	enableMergeWhitelist, mergeWhitelistUsernames, mergeWhitelistTeams := generateWhitelist(d, "merge_whitelist")
-	enableApprovalsWhitelist, approvalsWhitelistUsernames, approvalsWhitelistTeams := generateWhitelist(d, "approval_whitelist")
+	opt := branchProtectionFromResourceData(d, ruleName)
 
-	statusCheckContexts := make([]string, 0)
-	for _, element := range d.Get(repoBPStatusCheckPatterns).([]interface{}) {
-		statusCheckContexts = append(statusCheckContexts, element.(string))
-	}
-
-	enablePush := false
-	if enablePushWhitelist == true || d.Get(repoBPEnablePush).(bool) == true {
-		enablePush = true
-	}
-	pushWhitelistDeployKeys := d.Get(repoBPPushWhitelistDeployKeys).(bool)
-	enableStatusCheck := false
-	if len(statusCheckContexts) > 0 {
-		enableStatusCheck = true
-	}
-	requiredApprovals := int64(d.Get(repoBPRequiredApprovals).(int))
-	blockOnRejectedReviews := d.Get(repoBPBlockMergeOnRejectedReviews).(bool)
-	blockOnOfficialReviewRequests := d.Get(repoBPBlockMergeOnOfficialReviewRequests).(bool)
-	blockOnOutdatedBranch := d.Get(repoBPBlockMergeOnOutdatedBranch).(bool)
-	dismissStaleApprovals := d.Get(repoBPDismissStaleApprovals).(bool)
-	// ignoreStaleApprovals := d.Get(repoBPIgnoreStaleApprovals).(bool)
-	requireSignedCommits := d.Get(repoBPRequireSignedCommits).(bool)
-	protectedFilePatterns := d.Get(repoBPProtectedFilePatterns).(string)
-	unprotectedFilePatterns := d.Get(repoBPUnprotectedFilePatterns).(string)
-	blockAdminMergeOverride := d.Get(repoBPBlockAdminMergeOverride).(bool)
-
-	bpOption := gitea.EditBranchProtectionOption{
-		EnablePush:                    &enablePush,
-		EnablePushWhitelist:           &enablePushWhitelist,
-		PushWhitelistUsernames:        pushWhitelistUsernames,
-		PushWhitelistTeams:            pushWhitelistTeams,
-		PushWhitelistDeployKeys:       &pushWhitelistDeployKeys,
-		EnableMergeWhitelist:          &enableMergeWhitelist,
-		MergeWhitelistUsernames:       mergeWhitelistUsernames,
-		MergeWhitelistTeams:           mergeWhitelistTeams,
-		EnableStatusCheck:             &enableStatusCheck,
-		StatusCheckContexts:           statusCheckContexts,
-		RequiredApprovals:             &requiredApprovals,
-		EnableApprovalsWhitelist:      &enableApprovalsWhitelist,
-		ApprovalsWhitelistUsernames:   approvalsWhitelistUsernames,
-		ApprovalsWhitelistTeams:       approvalsWhitelistTeams,
-		BlockOnRejectedReviews:        &blockOnRejectedReviews,
-		BlockOnOfficialReviewRequests: &blockOnOfficialReviewRequests,
-		BlockOnOutdatedBranch:         &blockOnOutdatedBranch,
-		DismissStaleApprovals:         &dismissStaleApprovals,
-		// IgnoreStaleApprovals:          &ignoreStaleApprovals,
-		RequireSignedCommits:    &requireSignedCommits,
-		ProtectedFilePatterns:   &protectedFilePatterns,
-		UnprotectedFilePatterns: &unprotectedFilePatterns,
-		BlockAdminMergeOverride: &blockAdminMergeOverride,
-	}
-
-	bp, _, err := client.EditBranchProtection(user, repo, rule_name, bpOption)
+	bp, err := editBranchProtectionRaw(client, user, repo, ruleName, opt)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	err = setRepositoryBranchProtectionData(bp, user, repo, d)
-	return diag.FromErr(err)
+	return diag.FromErr(setRepositoryBranchProtectionData(bp, user, repo, d))
 }
 
 func resourceRepositoryBranchProtectionDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient)
 
 	user := d.Get(repoBPUsername).(string)
 	repo := d.Get(repoBPName).(string)
-	rule_name := d.Id()
+	ruleName := d.Id()
 
-	_, err = client.DeleteBranchProtection(user, repo, rule_name)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	return diag.FromErr(err)
+	return diag.FromErr(deleteBranchProtectionRaw(client, user, repo, ruleName))
 }
 
-func setRepositoryBranchProtectionData(bp *gitea.BranchProtection, user string, repo string, d *schema.ResourceData) (err error) {
+func setRepositoryBranchProtectionData(bp *branchProtection, user string, repo string, d *schema.ResourceData) (err error) {
 	d.SetId(bp.RuleName)
 	if err := d.Set(repoBPUsername, user); err != nil {
 		return err
@@ -261,6 +308,9 @@ func setRepositoryBranchProtectionData(bp *gitea.BranchProtection, user string, 
 		return err
 	}
 	if err := d.Set(repoBPUnprotectedFilePatterns, bp.UnprotectedFilePatterns); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPPriority, bp.Priority); err != nil {
 		return err
 	}
 	if err := d.Set(repoBPEnablePush, bp.EnablePush); err != nil {
@@ -278,6 +328,30 @@ func setRepositoryBranchProtectionData(bp *gitea.BranchProtection, user string, 
 	if err := d.Set(repoBPPushWhitelistDeployKeys, bp.PushWhitelistDeployKeys); err != nil {
 		return err
 	}
+	if err := d.Set(repoBPEnableForcePush, bp.EnableForcePush); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPEnableForcePushAllowlist, bp.EnableForcePushAllowlist); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPForcePushAllowlistUsers, bp.ForcePushAllowlistUsernames); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPForcePushAllowlistTeams, bp.ForcePushAllowlistTeams); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPForcePushAllowlistDeployKeys, bp.ForcePushAllowlistDeployKeys); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPEnableBypassAllowlist, bp.EnableBypassAllowlist); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPBypassAllowlistUsers, bp.BypassAllowlistUsernames); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPBypassAllowlistTeams, bp.BypassAllowlistTeams); err != nil {
+		return err
+	}
 	if err := d.Set(repoBPRequireSignedCommits, bp.RequireSignedCommits); err != nil {
 		return err
 	}
@@ -293,9 +367,10 @@ func setRepositoryBranchProtectionData(bp *gitea.BranchProtection, user string, 
 	if err := d.Set(repoBPApprovalWhitelistTeams, bp.ApprovalsWhitelistTeams); err != nil {
 		return err
 	}
-	if err := d.Set(repoBPDismissStaleApprovals, bp.DismissStaleApprovals); err !=
-		// d.Set(repoBPIgnoreStaleApprovals, bp.IgnoreStaleApprovals)
-		nil {
+	if err := d.Set(repoBPDismissStaleApprovals, bp.DismissStaleApprovals); err != nil {
+		return err
+	}
+	if err := d.Set(repoBPIgnoreStaleApprovals, bp.IgnoreStaleApprovals); err != nil {
 		return err
 	}
 	if err := d.Set(repoBPEnableStatusCheck, bp.EnableStatusCheck); err != nil {
@@ -322,6 +397,9 @@ func setRepositoryBranchProtectionData(bp *gitea.BranchProtection, user string, 
 	if err := d.Set(repoBPBlockMergeOnOutdatedBranch, bp.BlockOnOutdatedBranch); err != nil {
 		return err
 	}
+	if err := d.Set(repoBPBlockOnCodeownerReviews, bp.BlockOnCodeownerReviews); err != nil {
+		return err
+	}
 	if err := d.Set(repoBPBlockAdminMergeOverride, bp.BlockAdminMergeOverride); err != nil {
 		return err
 	}
@@ -332,7 +410,7 @@ func setRepositoryBranchProtectionData(bp *gitea.BranchProtection, user string, 
 		return err
 	}
 
-	return err
+	return nil
 }
 
 func resourceRepositoryBranchProtectionImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
@@ -380,6 +458,13 @@ func resourceGiteaRepositoryBranchProtection() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 				Description: "Protected Branch Name Pattern",
+			},
+			"priority": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				ForceNew:    false,
+				Default:     0,
+				Description: "Priority of this branch protection rule when multiple rules match the same branch. Lower values are evaluated first.",
 			},
 			"protected_file_patterns": {
 				Type:        schema.TypeString,
@@ -437,6 +522,69 @@ func resourceGiteaRepositoryBranchProtection() *schema.Resource {
 				Default:      false,
 				Description:  "Allow deploy keys with write access to push. Requires enable_push to be set to true.",
 			},
+			"enable_force_push": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: false,
+				Default:  false,
+				Description: `Allow force pushes to this branch by anyone with push access. Mutually
+								exclusive with the force push allowlist: if force_push_allowlist_users
+								or force_push_allowlist_teams is set, Gitea restricts force pushing to
+								that allowlist and this field reads back as false.`,
+			},
+			"enable_force_push_allowlist": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "True if a force push allowlist is used.",
+			},
+			"force_push_allowlist_users": {
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Optional:    true,
+				ForceNew:    false,
+				Description: "Allowlisted users who may force push to this branch.",
+			},
+			"force_push_allowlist_teams": {
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Optional:    true,
+				ForceNew:    false,
+				Description: "Allowlisted teams who may force push to this branch.",
+			},
+			"force_push_allowlist_deploy_keys": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				ForceNew:    false,
+				Default:     false,
+				Description: "Allow deploy keys with write access to force push.",
+			},
+			"enable_bypass_allowlist": {
+				Type:        schema.TypeBool,
+				Computed:    true,
+				Description: "True if a bypass allowlist is used.",
+			},
+			"bypass_allowlist_users": {
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Optional:    true,
+				ForceNew:    false,
+				Description: "Allowlisted users who may bypass this branch protection rule entirely.",
+			},
+			"bypass_allowlist_teams": {
+				Type: schema.TypeList,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Optional:    true,
+				ForceNew:    false,
+				Description: "Allowlisted teams who may bypass this branch protection rule entirely.",
+			},
 			"require_signed_commits": {
 				Type:        schema.TypeBool,
 				Optional:    true,
@@ -486,18 +634,15 @@ func resourceGiteaRepositoryBranchProtection() *schema.Resource {
 				Description: `When new commits that change the content of the pull request
 								are pushed to the branch, old approvals will be dismissed.`,
 			},
-			//
-			// not implemented in go-gitea-sdk
-			//
-			// "ignore_stale_approvals": {
-			// 	Type:        schema.TypeBool,
-			//  Optional 	 true,
-			// 	ForceNew:    false,
-			// 	Default:     false,
-			// 	Description: `Do not count approvals that were made on older commits (stale
-			//					reviews) towards how many approvals the PR has. Irrelevant if
-			//					stale reviews are already dismissed.`,
-			// },
+			"ignore_stale_approvals": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: false,
+				Default:  false,
+				Description: `Do not count approvals that were made on older commits (stale
+								reviews) towards how many approvals the PR has. Irrelevant if
+								stale reviews are already dismissed.`,
+			},
 			"enable_status_check": {
 				Type:     schema.TypeBool,
 				Computed: true,
@@ -564,6 +709,13 @@ func resourceGiteaRepositoryBranchProtection() *schema.Resource {
 				ForceNew:    false,
 				Default:     false,
 				Description: "Merging will not be possible when head branch is behind base branch.",
+			},
+			"block_on_codeowner_reviews": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				ForceNew:    false,
+				Default:     false,
+				Description: "Merging will not be possible until all code owners (per CODEOWNERS) have approved. Requires Gitea >= 28.0.0.",
 			},
 			"block_admin_merge_override": {
 				Type:        schema.TypeBool,

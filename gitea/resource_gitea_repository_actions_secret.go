@@ -54,7 +54,7 @@ func resourceGiteaRepositoryActionsSecret() *schema.Resource {
 }
 
 func resourceGiteaRepositoryActionsSecretCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	repoOwnerData, usernameOk := d.GetOk("repository_owner")
 	if !usernameOk {
@@ -92,7 +92,7 @@ func resourceGiteaRepositoryActionsSecretCreate(ctx context.Context, d *schema.R
 }
 
 func resourceGiteaRepositoryActionsSecretUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	repoOwnerData, usernameOk := d.GetOk("repository_owner")
 	if !usernameOk {
@@ -128,7 +128,7 @@ func resourceGiteaRepositoryActionsSecretUpdate(ctx context.Context, d *schema.R
 }
 
 func resourceGiteaRepositoryActionsSecretRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	repoOwner, repository, secretName, err := parseThreePartID(d.Id(), "repository_owner", "repository", "secret_name")
 	if err != nil {
@@ -198,7 +198,7 @@ func resourceGiteaRepositoryActionsSecretRead(ctx context.Context, d *schema.Res
 }
 
 func resourceGiteaRepositoryActionsSecretDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	repoOwner, repository, secretName, _ := parseThreePartID(d.Id(), "repository_owner", "repository", "secret_name")
 

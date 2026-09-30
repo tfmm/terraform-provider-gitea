@@ -64,7 +64,7 @@ func dataSourceGiteaRepositoryFiles() *schema.Resource {
 }
 
 func dataSourceGiteaRepositoryFilesRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	owner := strings.ToLower(d.Get(repositoryOwnerField).(string))
 	repo := strings.ToLower(d.Get(repositoryNameField).(string))
 	branch := d.Get("branch").(string)
@@ -133,7 +133,7 @@ func dataSourceGiteaPackageVersions() *schema.Resource {
 }
 
 func dataSourceGiteaPackageVersionsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	owner := d.Get("owner").(string)
 	packageType := d.Get("package_type").(string)
 	name := d.Get("name").(string)
@@ -192,7 +192,7 @@ func dataSourceGiteaRepositoryIssueConfig() *schema.Resource {
 }
 
 func dataSourceGiteaRepositoryIssueConfigRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	owner := strings.ToLower(d.Get(repositoryOwnerField).(string))
 	repo := strings.ToLower(d.Get(repositoryNameField).(string))
 
@@ -236,7 +236,7 @@ func dataSourceGiteaRepositoryLicenses() *schema.Resource {
 }
 
 func dataSourceGiteaRepositoryLicensesRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	owner := strings.ToLower(d.Get(repositoryOwnerField).(string))
 	repo := strings.ToLower(d.Get(repositoryNameField).(string))
 	licenses, _, err := client.GetRepoLicenses(owner, repo)
@@ -270,7 +270,7 @@ func dataSourceGiteaRepositorySigningKey() *schema.Resource {
 }
 
 func dataSourceGiteaRepositorySigningKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	owner := strings.ToLower(d.Get(repositoryOwnerField).(string))
 	repo := strings.ToLower(d.Get(repositoryNameField).(string))
 
@@ -316,7 +316,7 @@ func dataSourceGiteaRepositorySubscribers() *schema.Resource {
 }
 
 func dataSourceGiteaRepositorySubscribersRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	owner := strings.ToLower(d.Get(repositoryOwnerField).(string))
 	repo := strings.ToLower(d.Get(repositoryNameField).(string))
 
@@ -371,7 +371,7 @@ func dataSourceGiteaTeamRepository() *schema.Resource {
 }
 
 func dataSourceGiteaTeamRepositoryRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	teamID := int64(d.Get("team_id").(int))
 	owner := strings.ToLower(d.Get(repositoryOwnerField).(string))
 	repoName := strings.ToLower(d.Get(repositoryNameField).(string))
@@ -453,7 +453,7 @@ func dataSourceGiteaPullRequestByBaseHead() *schema.Resource {
 }
 
 func dataSourceGiteaPullRequestByBaseHeadRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	owner := strings.ToLower(d.Get(repositoryOwnerField).(string))
 	repo := strings.ToLower(d.Get(repositoryNameField).(string))
 	baseRef := d.Get("base_ref").(string)

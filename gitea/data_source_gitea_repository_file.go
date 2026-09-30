@@ -73,7 +73,7 @@ func dataSourceGiteaRepositoryFile() *schema.Resource {
 }
 
 func dataSourceGiteaRepositoryFileRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	owner := strings.ToLower(d.Get("username").(string))
 	repo := strings.ToLower(d.Get("name").(string))

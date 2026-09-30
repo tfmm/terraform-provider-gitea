@@ -86,7 +86,7 @@ func CollapseStringList(strlist []string) []interface{} {
 
 func resourceOauth2AppUpcreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	redirectURIsSchema, redirectURIsSchemaOk := d.Get(oauth2KeyRedirectURIs).(*schema.Set)
 
@@ -166,7 +166,7 @@ func searchOauth2AppByClientId(c *gitea.Client, id string) (res *gitea.Oauth2, e
 
 func resourceOauth2AppRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	app, err := searchOauth2AppByClientId(client, d.Id())
 
@@ -185,7 +185,7 @@ func resourceOauth2AppRead(ctx context.Context, d *schema.ResourceData, meta int
 
 func resourceOauth2AppDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	app, err := searchOauth2AppByClientId(client, d.Id())
 

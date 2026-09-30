@@ -290,6 +290,47 @@ run "implicit_enable_merge_whitelist_with_teams" {
   }
 }
 
+run "gitea_28_fields" {
+  variables {
+    rule_name                  = "gitea_28_fields"
+    priority                   = 5
+    required_approvals         = 2
+    block_on_codeowner_reviews = true
+    ignore_stale_approvals     = true
+    enable_force_push          = true
+    force_push_allowlist_users = ["test_user"]
+    bypass_allowlist_users     = ["test_user"]
+  }
+  assert {
+    condition     = gitea_repository_branch_protection.bp.block_on_codeowner_reviews == true
+    error_message = "block_on_codeowner_reviews not eq `true`"
+  }
+  assert {
+    condition     = gitea_repository_branch_protection.bp.ignore_stale_approvals == true
+    error_message = "ignore_stale_approvals not eq `true`"
+  }
+  assert {
+    condition     = gitea_repository_branch_protection.bp.priority == 5
+    error_message = "priority not eq `5`"
+  }
+  assert {
+    condition     = gitea_repository_branch_protection.bp.enable_force_push_allowlist == true
+    error_message = "enable_force_push_allowlist not eq `true`"
+  }
+  assert {
+    condition     = gitea_repository_branch_protection.bp.force_push_allowlist_users == tolist(var.force_push_allowlist_users)
+    error_message = "force_push_allowlist_users not eq ${join(",", var.force_push_allowlist_users)}"
+  }
+  assert {
+    condition     = gitea_repository_branch_protection.bp.enable_bypass_allowlist == true
+    error_message = "enable_bypass_allowlist not eq `true`"
+  }
+  assert {
+    condition     = gitea_repository_branch_protection.bp.bypass_allowlist_users == tolist(var.bypass_allowlist_users)
+    error_message = "bypass_allowlist_users not eq ${join(",", var.bypass_allowlist_users)}"
+  }
+}
+
 run "implicit_enable_status_check" {
   variables {
     rule_name             = "implicit_enable_status_check"

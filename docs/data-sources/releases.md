@@ -27,6 +27,10 @@ data "gitea_releases" "example" {
 - `repo` (String) Repository name
 - `user` (String) User or organization owner of the repository
 
+### Optional
+
+- `tag_filter` (String) Filter releases by tag, matched server-side. Supports "*" as a wildcard (e.g. "v1*", "*beta", "*rc*"). Requires Gitea >= 28.0.0.
+
 ### Read-Only
 
 - `id` (String) The ID of this resource.

@@ -32,7 +32,7 @@ const (
 
 func resourceOrgWebhookRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -100,7 +100,7 @@ func buildOrgWebhookConfigMap(d *schema.ResourceData) map[string]string {
 
 func resourceOrgWebhookCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	org := d.Get(orgWebhookOrg).(string)
 
@@ -127,7 +127,7 @@ func resourceOrgWebhookCreate(ctx context.Context, d *schema.ResourceData, meta 
 
 func resourceOrgWebhookUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	org := d.Get(orgWebhookOrg).(string)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
@@ -163,7 +163,7 @@ func resourceOrgWebhookUpdate(ctx context.Context, d *schema.ResourceData, meta 
 
 func resourceOrgWebhookDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	org := d.Get(orgWebhookOrg).(string)
 	id, err := strconv.ParseInt(d.Id(), 10, 64)

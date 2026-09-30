@@ -39,7 +39,7 @@ func resourceGiteaPushMirrorImport(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceGiteaPushMirrorCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	owner := d.Get("owner").(string)
 	repo := d.Get("repo").(string)
@@ -62,7 +62,7 @@ func resourceGiteaPushMirrorCreate(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceGiteaPushMirrorRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	owner, repo, remoteName, err := parsePushMirrorID(d.Id())
 	if err != nil {
@@ -116,7 +116,7 @@ func resourceGiteaPushMirrorRead(ctx context.Context, d *schema.ResourceData, me
 }
 
 func resourceGiteaPushMirrorDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	owner, repo, remoteName, err := parsePushMirrorID(d.Id())
 	if err != nil {
