@@ -68,7 +68,7 @@ resource "gitea_repository_branch_protection" "example" {
 								stale reviews are already dismissed.
 - `merge_whitelist_teams` (List of String) Allow only allowlisted teams to merge pull requests into this branch.
 - `merge_whitelist_users` (List of String) Allow only allowlisted users to merge pull requests into this branch.
-- `priority` (Number) Priority of this branch protection rule when multiple rules match the same branch. Lower values are evaluated first.
+- `priority` (Number) Priority of this branch protection rule when multiple rules match the same branch. Lower values are evaluated first. Leave unset to let Gitea assign it automatically (sequentially, by creation order); setting it explicitly takes over that assignment.
 - `protected_file_patterns` (String) Protected file patterns (separated using semicolon ';')
 - `push_whitelist_deploy_keys` (Boolean) Allow deploy keys with write access to push. Requires enable_push to be set to true.
 - `push_whitelist_teams` (List of String) Allowlisted teams for pushing. Requires enable_push to be set to true.

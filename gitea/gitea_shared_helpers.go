@@ -224,6 +224,15 @@ func optionalBoolValue(d *schema.ResourceData, field string) *bool {
 	return nil
 }
 
+func optionalInt64Value(d *schema.ResourceData, field string) *int64 {
+	if raw, ok := d.GetOkExists(field); ok {
+		value := int64(raw.(int))
+		return &value
+	}
+
+	return nil
+}
+
 func buildResourceID(parts ...string) string {
 	return strings.Join(parts, ":")
 }

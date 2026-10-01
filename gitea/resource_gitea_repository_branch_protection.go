@@ -68,9 +68,18 @@ const (
 // the SDK has not yet caught up with fields introduced by Gitea, such as
 // block_on_codeowner_reviews (Gitea 28) and the bypass/force-push allowlists.
 type branchProtection struct {
-	BranchName                    string    `json:"branch_name"`
-	RuleName                      string    `json:"rule_name"`
-	Priority                      int64     `json:"priority"`
+	BranchName string `json:"branch_name"`
+	RuleName   string `json:"rule_name"`
+	// Priority is a pointer with omitempty deliberately, unlike every other
+	// field here: Gitea auto-assigns it sequentially (1, 2, 3, ...) by
+	// creation order when it's left out of a create request, but a PATCH
+	// that explicitly includes it (even priority:0) overwrites that
+	// assignment outright - verified against a live Gitea 28.0.0 server.
+	// Since every other field in this struct is unconditionally sent as
+	// part of a full-sync payload, a plain int64 here would silently reset
+	// every rule's priority to 0 on every create and every edit unless the
+	// user had explicitly configured one.
+	Priority                      *int64    `json:"priority,omitempty"`
 	EnablePush                    bool      `json:"enable_push"`
 	EnablePushWhitelist           bool      `json:"enable_push_whitelist"`
 	PushWhitelistUsernames        []string  `json:"push_whitelist_usernames"`
@@ -208,7 +217,7 @@ func branchProtectionFromResourceData(d *schema.ResourceData, ruleName string) *
 		// BranchName is deprecated in gitea, but still required by the API, therefore using RuleName
 		BranchName:                    ruleName,
 		RuleName:                      ruleName,
-		Priority:                      int64(d.Get(repoBPPriority).(int)),
+		Priority:                      optionalInt64Value(d, repoBPPriority),
 		EnablePush:                    enablePush,
 		EnablePushWhitelist:           enablePushWhitelist,
 		PushWhitelistUsernames:        pushWhitelistUsernames,
@@ -310,7 +319,11 @@ func setRepositoryBranchProtectionData(bp *branchProtection, user string, repo s
 	if err := d.Set(repoBPUnprotectedFilePatterns, bp.UnprotectedFilePatterns); err != nil {
 		return err
 	}
-	if err := d.Set(repoBPPriority, bp.Priority); err != nil {
+	var priority int64
+	if bp.Priority != nil {
+		priority = *bp.Priority
+	}
+	if err := d.Set(repoBPPriority, priority); err != nil {
 		return err
 	}
 	if err := d.Set(repoBPEnablePush, bp.EnablePush); err != nil {
@@ -460,11 +473,13 @@ func resourceGiteaRepositoryBranchProtection() *schema.Resource {
 				Description: "Protected Branch Name Pattern",
 			},
 			"priority": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				ForceNew:    false,
-				Default:     0,
-				Description: "Priority of this branch protection rule when multiple rules match the same branch. Lower values are evaluated first.",
+				Type:     schema.TypeInt,
+				Optional: true,
+				Computed: true,
+				ForceNew: false,
+				Description: "Priority of this branch protection rule when multiple rules match the same branch. Lower values are evaluated " +
+					"first. Leave unset to let Gitea assign it automatically (sequentially, by creation order); setting it explicitly " +
+					"takes over that assignment.",
 			},
 			"protected_file_patterns": {
 				Type:        schema.TypeString,

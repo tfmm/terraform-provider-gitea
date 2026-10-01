@@ -115,8 +115,8 @@ func TestBranchProtectionCreateSendsNewFieldsAndFollowsUpWithEdit(t *testing.T) 
 	if !postBody.BlockOnCodeownerReviews {
 		t.Error("expected block_on_codeowner_reviews to be sent on create")
 	}
-	if postBody.Priority != 5 {
-		t.Errorf("expected priority 5 on create, got %d", postBody.Priority)
+	if postBody.Priority == nil || *postBody.Priority != 5 {
+		t.Errorf("expected priority 5 on create, got %v", postBody.Priority)
 	}
 	if !postBody.IgnoreStaleApprovals {
 		t.Error("expected ignore_stale_approvals to be sent on create")
@@ -137,10 +137,11 @@ func TestBranchProtectionReadParsesGitea28Fields(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet && r.URL.Path == "/api/v1/repos/owner/repo/branch_protections/main" {
 			w.Header().Set("Content-Type", "application/json")
+			priority := int64(3)
 			_ = json.NewEncoder(w).Encode(branchProtection{
 				BranchName:               "main",
 				RuleName:                 "main",
-				Priority:                 3,
+				Priority:                 &priority,
 				BlockOnCodeownerReviews:  true,
 				IgnoreStaleApprovals:     true,
 				EnableBypassAllowlist:    true,
