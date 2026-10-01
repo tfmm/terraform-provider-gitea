@@ -54,6 +54,7 @@ resource "gitea_user" "test" {
 - `prohibit_login` (Boolean) Flag if the user should not be allowed to log in (bot user)
 - `restricted` (Boolean)
 - `send_notification` (Boolean) Flag to send a notification about the user creation to the defined `email`
+- `user_type` (String) Whether this is a regular `user` or a `bot` account (Gitea >= 28.0.0). Bot accounts are intended for automation/service use, e.g. CI tokens. `password` is still required by this resource even for bot accounts, since Gitea user creation always needs one; prohibit_login is commonly set to `true` alongside `user_type = "bot"` to prevent interactive login.
 - `visibility` (String) Visibility of the user. Can be `public`, `limited` or `private`
 
 ### Read-Only
