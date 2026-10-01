@@ -15,9 +15,12 @@ This resource allows you to create and manage branch protections for repositorie
 ```terraform
 resource "gitea_repository_branch_protection" "example" {
   username    = "my-org"
-  repository  = "my-repo"
+  name        = "my-repo"
   rule_name   = "main"
   enable_push = false
+
+  required_approvals         = 1
+  block_on_codeowner_reviews = true # requires Gitea >= 28.0.0
 }
 ```
 
