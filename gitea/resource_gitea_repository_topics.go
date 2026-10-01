@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/sdk/gitea"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func resourceRepositoryTopicsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	user := d.Get("user").(string)
 	repoName := d.Get("repo").(string)
 
@@ -30,7 +29,7 @@ func resourceRepositoryTopicsRead(ctx context.Context, d *schema.ResourceData, m
 }
 
 func resourceRepositoryTopicsCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	user := d.Get("user").(string)
 	repoName := d.Get("repo").(string)
 
@@ -54,7 +53,7 @@ func resourceRepositoryTopicsUpdate(ctx context.Context, d *schema.ResourceData,
 }
 
 func resourceRepositoryTopicsDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	user := d.Get("user").(string)
 	repoName := d.Get("repo").(string)
 

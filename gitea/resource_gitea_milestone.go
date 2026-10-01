@@ -13,7 +13,7 @@ import (
 )
 
 func resourceMilestoneRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -49,7 +49,7 @@ func resourceMilestoneRead(ctx context.Context, d *schema.ResourceData, meta int
 }
 
 func resourceMilestoneCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
 
@@ -81,7 +81,7 @@ func resourceMilestoneCreate(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func resourceMilestoneUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)
@@ -120,7 +120,7 @@ func resourceMilestoneUpdate(ctx context.Context, d *schema.ResourceData, meta i
 }
 
 func resourceMilestoneDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
 		return diag.FromErr(err)

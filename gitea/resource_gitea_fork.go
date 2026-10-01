@@ -18,7 +18,7 @@ const (
 
 func resourceForkCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	var opts gitea.CreateForkOption
 	var org string
@@ -38,7 +38,7 @@ func resourceForkCreate(ctx context.Context, d *schema.ResourceData, meta interf
 
 func resourceForkRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	var resp *gitea.Response
@@ -65,7 +65,7 @@ func resourceForkRead(ctx context.Context, d *schema.ResourceData, meta interfac
 
 func resourceForkDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 

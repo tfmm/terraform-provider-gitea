@@ -65,7 +65,7 @@ func dataSourceGiteaLabel() *schema.Resource {
 }
 
 func dataSourceGiteaLabelRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	id := int64(d.Get("id").(int))
 
 	var label *gitea.Label
@@ -158,7 +158,7 @@ func dataSourceGiteaLabels() *schema.Resource {
 }
 
 func dataSourceGiteaLabelsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	var labels []*gitea.Label
 	var err error

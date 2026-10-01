@@ -117,6 +117,7 @@ func Provider() *schema.Provider {
 			"gitea_git_hook":                          resourceGiteaGitHook(),
 			"gitea_token":                             resourceGiteaToken(),
 			"gitea_repository_key":                    resourceGiteaRepositoryKey(),
+			"gitea_repository_deploy_token":           resourceGiteaRepositoryDeployToken(),
 			"gitea_repository_webhook":                resourceGiteaRepositoryWebhook(),
 			"gitea_repository_branch_protection":      resourceGiteaRepositoryBranchProtection(),
 			"gitea_repository_actions_variable":       resourceGiteaRepositoryActionsVariable(),

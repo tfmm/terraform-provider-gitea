@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/sdk/gitea"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -49,7 +48,7 @@ func resourceGiteaRepositoryActionsVariable() *schema.Resource {
 }
 
 func resourceGiteaRepositoryActionsVariableCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	repoOwnerData, usernameOk := d.GetOk("repository_owner")
 	if !usernameOk {
@@ -85,7 +84,7 @@ func resourceGiteaRepositoryActionsVariableCreate(ctx context.Context, d *schema
 }
 
 func resourceGiteaRepositoryActionsVariableUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	repoOwnerData, usernameOk := d.GetOk("repository_owner")
 	if !usernameOk {
@@ -120,7 +119,7 @@ func resourceGiteaRepositoryActionsVariableUpdate(ctx context.Context, d *schema
 }
 
 func resourceGiteaRepositoryActionsVariableRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	repoOwner, repository, variableName, err := parseThreePartID(d.Id(), "repository_owner", "repository", "variable_name")
 	if err != nil {
@@ -158,7 +157,7 @@ func resourceGiteaRepositoryActionsVariableRead(ctx context.Context, d *schema.R
 }
 
 func resourceGiteaRepositoryActionsVariableDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	repoOwnerData, usernameOk := d.GetOk("repository_owner")
 	if !usernameOk {

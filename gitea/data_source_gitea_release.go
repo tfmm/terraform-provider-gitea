@@ -3,6 +3,7 @@ package gitea
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strconv"
 
 	"code.gitea.io/sdk/gitea"
@@ -65,7 +66,7 @@ func dataSourceGiteaRelease() *schema.Resource {
 }
 
 func dataSourceGiteaReleaseRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
 	id := int64(d.Get("id").(int))
@@ -112,6 +113,11 @@ func dataSourceGiteaReleases() *schema.Resource {
 				Required:    true,
 				Description: "Repository name",
 			},
+			"tag_filter": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "Filter releases by tag, matched server-side. Supports \"*\" as a wildcard (e.g. \"v1*\", \"*beta\", \"*rc*\"). Requires Gitea >= 28.0.0.",
+			},
 			"releases": {
 				Type:     schema.TypeList,
 				Computed: true,
@@ -150,13 +156,25 @@ func dataSourceGiteaReleases() *schema.Resource {
 }
 
 func dataSourceGiteaReleasesRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient)
 	user := d.Get("user").(string)
 	repo := d.Get("repo").(string)
+	tagFilter := d.Get("tag_filter").(string)
 
-	releases, _, err := client.ListReleases(user, repo, gitea.ListReleasesOptions{})
-	if err != nil {
-		return diag.FromErr(err)
+	var releases []*gitea.Release
+	if tagFilter != "" {
+		// tag_filter is not yet supported by code.gitea.io/sdk/gitea's
+		// ListReleasesOptions, so this issues the request directly.
+		path := fmt.Sprintf("/repos/%s/%s/releases?tag_filter=%s", url.PathEscape(user), url.PathEscape(repo), url.QueryEscape(tagFilter))
+		if err := client.rawJSON("GET", path, nil, &releases); err != nil {
+			return diag.FromErr(err)
+		}
+	} else {
+		var err error
+		releases, _, err = client.Client.ListReleases(user, repo, gitea.ListReleasesOptions{})
+		if err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	result := make([]map[string]interface{}, 0, len(releases))
@@ -171,7 +189,7 @@ func dataSourceGiteaReleasesRead(ctx context.Context, d *schema.ResourceData, me
 		})
 	}
 
-	d.SetId(fmt.Sprintf("%s/%s/releases", user, repo))
+	d.SetId(fmt.Sprintf("%s/%s/releases/%s", user, repo, tagFilter))
 	if err := d.Set("releases", result); err != nil {
 		return diag.FromErr(err)
 	}

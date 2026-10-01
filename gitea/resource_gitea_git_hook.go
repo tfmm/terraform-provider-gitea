@@ -18,7 +18,7 @@ const (
 
 func resourceGitHookRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	user := d.Get(GitHookUser).(string)
 	repo := d.Get(GitHookRepo).(string)
@@ -37,7 +37,7 @@ func resourceGitHookRead(ctx context.Context, d *schema.ResourceData, meta inter
 
 func resourceGitHookUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	user := d.Get(GitHookUser).(string)
 	repo := d.Get(GitHookRepo).(string)
@@ -67,7 +67,7 @@ func resourceGitHookUpdate(ctx context.Context, d *schema.ResourceData, meta int
 
 func resourceGitHookDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	user := d.Get(GitHookUser).(string)
 	repo := d.Get(GitHookRepo).(string)

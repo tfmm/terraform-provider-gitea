@@ -57,7 +57,7 @@ func dataSourceGiteaActionsRunners() *schema.Resource {
 }
 
 func dataSourceGiteaActionsRunnersRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	cfg, err := resolveActionScope(d)
 	if err != nil {
 		return diag.FromErr(err)
@@ -134,7 +134,7 @@ func dataSourceGiteaActionsRuns() *schema.Resource {
 }
 
 func dataSourceGiteaActionsRunsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	cfg, err := resolveActionScope(d)
 	if err != nil {
 		return diag.FromErr(err)
@@ -241,7 +241,7 @@ func dataSourceGiteaActionsJobs() *schema.Resource {
 }
 
 func dataSourceGiteaActionsJobsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	cfg, err := resolveActionScope(d)
 	if err != nil {
 		return diag.FromErr(err)
@@ -310,7 +310,7 @@ func dataSourceGiteaRepositoryActionsWorkflows() *schema.Resource {
 }
 
 func dataSourceGiteaRepositoryActionsWorkflowsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	if err := requireVersion(client, ">= 1.25.0", "repository actions workflows"); err != nil {
 		return diag.FromErr(err)
 	}
@@ -370,7 +370,7 @@ func dataSourceGiteaRepositoryActionsArtifacts() *schema.Resource {
 }
 
 func dataSourceGiteaRepositoryActionsArtifactsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	if err := requireVersion(client, ">= 1.25.0", "repository actions artifacts"); err != nil {
 		return diag.FromErr(err)
 	}
@@ -479,7 +479,7 @@ func resourceGiteaRepositoryActionsWorkflowStateCreate(ctx context.Context, d *s
 }
 
 func resourceGiteaRepositoryActionsWorkflowStateRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	if err := requireVersion(client, ">= 1.25.0", "repository actions workflow state"); err != nil {
 		return diag.FromErr(err)
 	}
@@ -538,7 +538,7 @@ func resourceGiteaRepositoryActionsWorkflowStateDelete(ctx context.Context, d *s
 }
 
 func setRepositoryWorkflowState(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	if err := requireVersion(client, ">= 1.25.0", "repository actions workflow state"); err != nil {
 		return diag.FromErr(err)
 	}
@@ -631,7 +631,7 @@ func dataSourceGiteaActionsRunnerRegistrationToken() *schema.Resource {
 }
 
 func dataSourceGiteaActionsRunnerRegistrationTokenRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	cfg, err := resolveActionScope(d)
 	if err != nil {
 		return diag.FromErr(err)
@@ -686,7 +686,7 @@ func dataSourceGiteaRepositoryActionsArtifact() *schema.Resource {
 }
 
 func dataSourceGiteaRepositoryActionsArtifactRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	if err := requireVersion(client, ">= 1.25.0", "repository actions artifact"); err != nil {
 		return diag.FromErr(err)
 	}

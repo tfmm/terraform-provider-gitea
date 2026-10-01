@@ -34,7 +34,7 @@ const (
 
 func resourceRepositoryWebhookRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	if err != nil {
@@ -105,7 +105,7 @@ func buildWebhookConfigMap(d *schema.ResourceData) map[string]string {
 
 func resourceRepositoryWebhookCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	user := d.Get(repoWebhookUsername).(string)
 	repo := d.Get(repoWebhookName).(string)
@@ -134,7 +134,7 @@ func resourceRepositoryWebhookCreate(ctx context.Context, d *schema.ResourceData
 
 func resourceRepositoryWebhookUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	user := d.Get(repoWebhookUsername).(string)
 	repo := d.Get(repoWebhookName).(string)
@@ -172,7 +172,7 @@ func resourceRepositoryWebhookUpdate(ctx context.Context, d *schema.ResourceData
 
 func resourceRepositoryWebhookDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	user := d.Get(repoWebhookUsername).(string)
 	repo := d.Get(repoWebhookName).(string)

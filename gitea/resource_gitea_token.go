@@ -75,7 +75,7 @@ func searchTokenById(c *gitea.Client, id int64) (res *gitea.AccessToken, err err
 func resourceTokenCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
 
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	// Create a list of valid scopes. Thrown an error if an invalid scope is found
 	var scopes []gitea.AccessTokenScope
@@ -107,7 +107,7 @@ func resourceTokenCreate(ctx context.Context, d *schema.ResourceData, meta inter
 func resourceTokenRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
 
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	var token *gitea.AccessToken
 
@@ -134,7 +134,7 @@ func resourceTokenRead(ctx context.Context, d *schema.ResourceData, meta interfa
 func resourceTokenDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
 
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	var resp *gitea.Response
 
 	if id, parseErr := strconv.ParseInt(d.Id(), 10, 64); parseErr == nil {

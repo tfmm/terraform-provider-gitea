@@ -122,7 +122,7 @@ func resourceGiteaIssueAttachment() *schema.Resource {
 }
 
 func resourceGiteaIssueAttachmentCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	owner := strings.ToLower(d.Get(repositoryOwnerField).(string))
 	repo := strings.ToLower(d.Get(repositoryNameField).(string))
 	issueIndex := int64(d.Get("issue_index").(int))
@@ -141,7 +141,7 @@ func resourceGiteaIssueAttachmentCreate(ctx context.Context, d *schema.ResourceD
 }
 
 func resourceGiteaIssueAttachmentRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	owner, repo, issueIndexPart, attachmentIDPart, err := parseFourPartID(d.Id(), repositoryOwnerField, repositoryNameField, "issue_index", "attachment_id")
 	if err != nil {
 		return diag.FromErr(err)
@@ -166,7 +166,7 @@ func resourceGiteaIssueAttachmentRead(ctx context.Context, d *schema.ResourceDat
 }
 
 func resourceGiteaIssueAttachmentUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	owner, repo, issueIndexPart, attachmentIDPart, err := parseFourPartID(d.Id(), repositoryOwnerField, repositoryNameField, "issue_index", "attachment_id")
 	if err != nil {
 		return diag.FromErr(err)
@@ -187,7 +187,7 @@ func resourceGiteaIssueAttachmentUpdate(ctx context.Context, d *schema.ResourceD
 }
 
 func resourceGiteaIssueAttachmentDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	owner, repo, issueIndexPart, attachmentIDPart, err := parseFourPartID(d.Id(), repositoryOwnerField, repositoryNameField, "issue_index", "attachment_id")
 	if err != nil {
 		return diag.FromErr(err)
@@ -218,7 +218,7 @@ func resourceGiteaIssueCommentAttachment() *schema.Resource {
 }
 
 func resourceGiteaIssueCommentAttachmentCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	owner := strings.ToLower(d.Get(repositoryOwnerField).(string))
 	repo := strings.ToLower(d.Get(repositoryNameField).(string))
 	commentID := int64(d.Get("comment_id").(int))
@@ -237,7 +237,7 @@ func resourceGiteaIssueCommentAttachmentCreate(ctx context.Context, d *schema.Re
 }
 
 func resourceGiteaIssueCommentAttachmentRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	owner, repo, commentIDPart, attachmentIDPart, err := parseFourPartID(d.Id(), repositoryOwnerField, repositoryNameField, "comment_id", "attachment_id")
 	if err != nil {
 		return diag.FromErr(err)
@@ -262,7 +262,7 @@ func resourceGiteaIssueCommentAttachmentRead(ctx context.Context, d *schema.Reso
 }
 
 func resourceGiteaIssueCommentAttachmentUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	owner, repo, commentIDPart, attachmentIDPart, err := parseFourPartID(d.Id(), repositoryOwnerField, repositoryNameField, "comment_id", "attachment_id")
 	if err != nil {
 		return diag.FromErr(err)
@@ -283,7 +283,7 @@ func resourceGiteaIssueCommentAttachmentUpdate(ctx context.Context, d *schema.Re
 }
 
 func resourceGiteaIssueCommentAttachmentDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	owner, repo, commentIDPart, attachmentIDPart, err := parseFourPartID(d.Id(), repositoryOwnerField, repositoryNameField, "comment_id", "attachment_id")
 	if err != nil {
 		return diag.FromErr(err)
@@ -332,7 +332,7 @@ func dataSourceGiteaIssueAttachments() *schema.Resource {
 }
 
 func dataSourceGiteaIssueAttachmentsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	owner := strings.ToLower(d.Get(repositoryOwnerField).(string))
 	repo := strings.ToLower(d.Get(repositoryNameField).(string))
 	issueIndex := int64(d.Get("issue_index").(int))
@@ -379,7 +379,7 @@ func dataSourceGiteaIssueCommentAttachments() *schema.Resource {
 }
 
 func dataSourceGiteaIssueCommentAttachmentsRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	owner := strings.ToLower(d.Get(repositoryOwnerField).(string))
 	repo := strings.ToLower(d.Get(repositoryNameField).(string))
 	commentID := int64(d.Get("comment_id").(int))

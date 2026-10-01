@@ -54,7 +54,7 @@ func dataSourceGiteaOrg() *schema.Resource {
 }
 
 func dataSourceGiteaOrgRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	var org *gitea.Organization
 	var err error

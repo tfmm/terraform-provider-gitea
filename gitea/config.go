@@ -1,11 +1,15 @@
 package gitea
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"code.gitea.io/sdk/gitea"
@@ -22,7 +26,71 @@ type Config struct {
 	CACertFile string
 }
 
-// Client returns a *gitea.Client to interact with the configured gitea instance
+// GiteaClient wraps the official SDK client together with the raw HTTP
+// plumbing needed to reach endpoints the SDK has no bindings for yet
+// (e.g. newly introduced Gitea APIs). All existing code keeps using the
+// embedded *gitea.Client exactly as before; only resources that need an
+// endpoint missing from the SDK use the raw* helpers below.
+type GiteaClient struct {
+	*gitea.Client
+
+	baseURL    string
+	httpClient *http.Client
+
+	token    string
+	username string
+	password string
+}
+
+// rawRequest issues an authenticated request against the Gitea API for
+// endpoints not yet exposed by the code.gitea.io/sdk/gitea package.
+func (c *GiteaClient) rawRequest(method, path string, body io.Reader) (*http.Response, error) {
+	url := strings.TrimSuffix(c.baseURL, "/") + "/api/v1" + path
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	switch {
+	case c.token != "":
+		req.Header.Set("Authorization", "token "+c.token)
+	case c.username != "":
+		req.SetBasicAuth(c.username, c.password)
+	}
+	return c.httpClient.Do(req)
+}
+
+// rawJSON performs a raw API request and decodes a JSON response body into out.
+// A nil out skips decoding (useful for 204/2xx responses with no body).
+func (c *GiteaClient) rawJSON(method, path string, in, out interface{}) error {
+	var body io.Reader
+	if in != nil {
+		encoded, err := json.Marshal(in)
+		if err != nil {
+			return err
+		}
+		body = bytes.NewReader(encoded)
+	}
+
+	resp, err := c.rawRequest(method, path, body)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		respBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("gitea API request %s %s failed with status %d: %s", method, path, resp.StatusCode, string(respBody))
+	}
+
+	if out == nil {
+		return nil
+	}
+	return json.NewDecoder(resp.Body).Decode(out)
+}
+
+// Client returns a *GiteaClient to interact with the configured gitea instance
 func (c *Config) Client() (interface{}, error) {
 
 	if c.Token == "" && c.Username == "" {
@@ -76,6 +144,16 @@ func (c *Config) Client() (interface{}, error) {
 
 	// Test the credentials by checking we can get information about the authenticated user.
 	_, _, err = client.GetMyUserInfo()
+	if err != nil {
+		return nil, err
+	}
 
-	return client, err
+	return &GiteaClient{
+		Client:     client,
+		baseURL:    c.BaseURL,
+		httpClient: httpClient,
+		token:      c.Token,
+		username:   c.Username,
+		password:   c.Password,
+	}, nil
 }

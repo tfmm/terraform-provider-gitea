@@ -61,7 +61,7 @@ func parseRepositoryFileID(id string) (owner, repo, branch, filePath string, err
 
 func resourceRepositoryFileRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	username, name, branch, filePath, err := parseRepositoryFileID(d.Id())
 	if err != nil {
@@ -142,7 +142,7 @@ func resourceRepositoryFileRead(ctx context.Context, d *schema.ResourceData, met
 }
 func resourceRepositoryFileCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	usernameData, usernameOk := d.GetOk("username")
 	if !usernameOk {
@@ -264,7 +264,7 @@ func resourceRepositoryFileCreate(ctx context.Context, d *schema.ResourceData, m
 
 func resourceRepositoryFileUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	name := d.Get(repoName).(string)
 	username := d.Get(repoOwner).(string)
@@ -331,7 +331,7 @@ func resourceRepositoryFileUpdate(ctx context.Context, d *schema.ResourceData, m
 
 func resourceRepositoryFileDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	owner := d.Get(repoOwner).(string)
 	name := d.Get(repoName).(string)

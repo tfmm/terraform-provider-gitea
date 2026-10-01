@@ -33,7 +33,7 @@ func resourceRepoBranchIdParts(d *schema.ResourceData) (hasId bool, repoId int64
 
 func resourceRepoBranchRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	hasId, repoId, branchId, err := resourceRepoBranchIdParts(d)
 	if err != nil {
@@ -71,7 +71,7 @@ func resourceRepoBranchRead(ctx context.Context, d *schema.ResourceData, meta in
 
 func resourceRepoBranchCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	repo, _, err := client.GetRepoByID(int64(d.Get(repoBranchRepo).(int)))
 
@@ -95,7 +95,7 @@ func resourceRepoBranchCreate(ctx context.Context, d *schema.ResourceData, meta 
 
 func resourceRepoBranchDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	hasId, repoId, branchId, err := resourceRepoBranchIdParts(d)
 	if err != nil {
 		return diag.FromErr(err)

@@ -54,7 +54,7 @@ func resourceRepoKeyIdParts(d *schema.ResourceData) (bool, int64, int64, error) 
 
 func resourceRepoKeyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	hasId, repoId, keyId, err := resourceRepoKeyIdParts(d)
 	if err != nil {
@@ -92,7 +92,7 @@ func resourceRepoKeyRead(ctx context.Context, d *schema.ResourceData, meta inter
 
 func resourceRepoKeyCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	repo, _, err := client.GetRepoByID(int64(d.Get(deployKeyRepoId).(int)))
 
@@ -118,7 +118,7 @@ func resourceRepoKeyCreate(ctx context.Context, d *schema.ResourceData, meta int
 
 func respurceRepoKeyDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	hasId, repoId, keyId, err := resourceRepoKeyIdParts(d)
 	if err != nil {

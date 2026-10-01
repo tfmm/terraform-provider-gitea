@@ -58,7 +58,7 @@ func dataSourceGiteaOrgWebhook() *schema.Resource {
 }
 
 func dataSourceGiteaOrgWebhookRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	org := d.Get("org").(string)
 	id := int64(d.Get("id").(int))
 
@@ -126,7 +126,7 @@ func dataSourceGiteaOrgWebhooks() *schema.Resource {
 }
 
 func dataSourceGiteaOrgWebhooksRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 	org := d.Get("org").(string)
 
 	hooks, _, err := client.ListOrgHooks(org, gitea.ListHooksOptions{})

@@ -69,4 +69,3 @@ func TestNewResourcesRegisteredInProvider(t *testing.T) {
 		}
 	}
 }
-

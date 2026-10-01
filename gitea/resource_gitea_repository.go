@@ -117,7 +117,7 @@ func searchUserByName(c *gitea.Client, name string) (res *gitea.User, err error)
 
 func resourceRepoRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	id, err := strconv.ParseInt(d.Id(), 10, 64)
 	var resp *gitea.Response
@@ -144,7 +144,7 @@ func resourceRepoRead(ctx context.Context, d *schema.ResourceData, meta interfac
 
 func resourceRepoCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	var repo *gitea.Repository
 	var resp *gitea.Response
@@ -276,6 +276,24 @@ func resourceRepoCreate(ctx context.Context, d *schema.ResourceData, meta interf
 		}
 	}
 
+	// gitea.CreateRepoOption has no ignore_whitespace_conflicts field - only
+	// EditRepoOption does - so a freshly created repo always starts out with
+	// Gitea's own server-side default (false) regardless of what's configured
+	// here. Without this follow-up call, a config that doesn't explicitly set
+	// ignore_whitespace_conflicts (relying on this resource's `true` default)
+	// would read back `false` right after creation, and every plan after that
+	// would show a perpetual, never-applied diff trying to flip it back to
+	// `true` until something finally triggers an Update.
+	if repo.IgnoreWhitespaceConflicts != d.Get(repoIgnoreWhitespace).(bool) {
+		ignoreWhitespaceConflicts := d.Get(repoIgnoreWhitespace).(bool)
+		repo, _, err = client.EditRepo(repo.Owner.UserName, repo.Name, gitea.EditRepoOption{
+			IgnoreWhitespaceConflicts: &ignoreWhitespaceConflicts,
+		})
+		if err != nil {
+			return diag.FromErr(err)
+		}
+	}
+
 	err = setRepoResourceData(repo, d)
 
 	return diag.FromErr(err)
@@ -283,7 +301,7 @@ func resourceRepoCreate(ctx context.Context, d *schema.ResourceData, meta interf
 
 func resourceRepoUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	var repo *gitea.Repository
 
@@ -359,7 +377,7 @@ func resourceRepoUpdate(ctx context.Context, d *schema.ResourceData, meta interf
 
 func resourceRepoDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
-	client := meta.(*gitea.Client)
+	client := meta.(*GiteaClient).Client
 
 	archiveOnDestroy := d.Get(repoArchiveOnDestroy).(bool)
 	archived := d.Get(repoArchived).(bool)
