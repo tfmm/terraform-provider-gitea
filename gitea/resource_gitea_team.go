@@ -493,31 +493,69 @@ func interfaceSliceToSet(v interface{}) map[string]bool {
 	return set
 }
 
+// interfaceSliceToSortedStrings extracts a []interface{} list's non-empty
+// string values, preserving duplicate counts (unlike interfaceSliceToSet),
+// and sorts them for order-independent comparison.
+func interfaceSliceToSortedStrings(v interface{}) []string {
+	values := make([]string, 0)
+	switch typed := v.(type) {
+	case []interface{}:
+		for _, item := range typed {
+			if item != nil {
+				if str := fmt.Sprint(item); str != "" {
+					values = append(values, str)
+				}
+			}
+		}
+	case []string:
+		for _, item := range typed {
+			if item != "" {
+				values = append(values, item)
+			}
+		}
+	}
+	return copyAndSortStrings(values)
+}
+
+func stringSlicesEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// repositoriesDiffSuppressFunc suppresses the diff for a repositories list
+// element only when the *entire* list - compared as a multiset, ignoring
+// order - is unchanged, i.e. the only difference is reordering (which
+// commonly comes from for_each/map iteration order rather than a real
+// config change). It must compare the whole list, not just whether old and
+// new each individually belong to *some* combined set of known repository
+// names: that weaker check is satisfied by almost any swap between two
+// repos that both appear somewhere in a large team's repository list,
+// which silently suppressed real content changes (e.g. one repo
+// mistakenly duplicated in place of another that should have been added)
+// and left the previous, wrong set of repositories attached to the team
+// with no way for a later plan to ever detect or correct it.
 func repositoriesDiffSuppressFunc(k, old, new string, d *schema.ResourceData) bool {
 	if old == new {
 		return true
 	}
-	if d != nil {
-		if includeAll, ok := d.Get("include_all_repositories").(bool); ok && includeAll {
-			if v, hasRepos := d.GetOk("repositories"); !hasRepos || len(v.([]interface{})) == 0 {
-				return true
-			}
-		}
-		var allSet map[string]bool
-		if v, ok := d.GetOk("repositories"); ok {
-			allSet = interfaceSliceToSet(v)
-		} else {
-			oldRaw, newRaw := d.GetChange("repositories")
-			allSet = interfaceSliceToSet(oldRaw)
-			for r := range interfaceSliceToSet(newRaw) {
-				allSet[r] = true
-			}
-		}
-		if len(allSet) > 0 && allSet[old] && allSet[new] {
+	if d == nil {
+		return false
+	}
+	if includeAll, ok := d.Get("include_all_repositories").(bool); ok && includeAll {
+		if v, hasRepos := d.GetOk("repositories"); !hasRepos || len(v.([]interface{})) == 0 {
 			return true
 		}
 	}
-	return false
+
+	oldRaw, newRaw := d.GetChange("repositories")
+	return stringSlicesEqual(interfaceSliceToSortedStrings(oldRaw), interfaceSliceToSortedStrings(newRaw))
 }
 
 func getTeamRepositoryNames(client *gitea.Client, teamID int64) ([]string, error) {
