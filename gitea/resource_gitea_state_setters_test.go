@@ -612,22 +612,43 @@ func TestRepositoriesDiffSuppressFunc(t *testing.T) {
 	dIncludeAll := schema.TestResourceDataRaw(t, resourceGiteaTeam().Schema, map[string]interface{}{
 		"include_all_repositories": true,
 	})
-	dSpecificRepos := schema.TestResourceDataRaw(t, resourceGiteaTeam().Schema, map[string]interface{}{
-		"include_all_repositories": false,
-		"repositories": []interface{}{
-			"cloudflare-terraform",
-			"gitea-terraform",
-			"zitadel-terraform",
-			"docker-compose-stacks",
-		},
-	})
 
 	if !repositoriesDiffSuppressFunc("repositories.0", "docker-compose-stacks", "cloudflare-terraform", dIncludeAll) {
 		t.Errorf("expected repositoriesDiffSuppressFunc to return true when include_all_repositories is true")
 	}
+}
 
-	if !repositoriesDiffSuppressFunc("repositories.1", "docker-compose-stacks", "gitea-terraform", dSpecificRepos) {
-		t.Errorf("expected repositoriesDiffSuppressFunc to return true for reordered repositories with identical set")
+// TestInterfaceSliceToSortedStrings and TestStringSlicesEqual exercise the
+// actual comparison repositoriesDiffSuppressFunc relies on directly, since
+// schema.TestResourceDataRaw can't simulate a real old-state-vs-new-config
+// diff (d.GetChange always reports an empty "old" against whatever was
+// passed in as "new") the way an actual terraform plan does.
+func TestInterfaceSliceToSortedStrings(t *testing.T) {
+	got := interfaceSliceToSortedStrings([]interface{}{"zitadel-terraform", "cloudflare-terraform", "zitadel-terraform"})
+	want := []string{"cloudflare-terraform", "zitadel-terraform", "zitadel-terraform"}
+	if !stringSlicesEqual(got, want) {
+		t.Errorf("expected %v, got %v (duplicates must be preserved, not collapsed)", want, got)
+	}
+}
+
+func TestStringSlicesEqualIgnoresOrderNotContent(t *testing.T) {
+	a := []string{"cloudflare-terraform", "gitea-terraform", "zitadel-terraform"}
+	bReordered := []string{"gitea-terraform", "zitadel-terraform", "cloudflare-terraform"}
+	if !stringSlicesEqual(copyAndSortStrings(a), copyAndSortStrings(bReordered)) {
+		t.Error("expected a pure reordering of the same set to compare equal")
+	}
+
+	// This is the exact real-world case this fix addresses: a team's real
+	// repository list ends up with "zitadel-terraform" duplicated instead
+	// of "emdash-plugin-zitadel" being added. Both lists are the same
+	// length and every individual value legitimately belongs to the team's
+	// overall configured repository set, which is precisely what let the
+	// old set-membership-based implementation silently suppress this as if
+	// it were a harmless reorder.
+	wrongState := []string{"cloudflare-terraform", "zitadel-terraform", "zitadel-terraform"}
+	desiredConfig := []string{"cloudflare-terraform", "zitadel-terraform", "emdash-plugin-zitadel"}
+	if stringSlicesEqual(copyAndSortStrings(wrongState), copyAndSortStrings(desiredConfig)) {
+		t.Error("expected a duplicated-instead-of-added repository to compare unequal, not be suppressed")
 	}
 }
 
